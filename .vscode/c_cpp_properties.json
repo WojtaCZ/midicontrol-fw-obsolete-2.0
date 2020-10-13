@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/libraries/**",
+                "${workspaceFolder}/main/**",
+                "${workspaceFolder}/libopencm3/include/libopencm3/stm32/",
+                "${workspaceFolder}/libopencm3/**"
+               
+               
+            ],
+            "defines": ["STM32G4"],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}

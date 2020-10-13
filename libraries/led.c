@@ -1,5 +1,6 @@
 #include <led.h>
 #include <setup.h>
+#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/dma.h>
@@ -41,7 +42,7 @@ void led_setup(){
 	timer_set_oc_mode(TIM17, TIM_OC1, TIM_OCM_PWM1);
 	timer_enable_oc_output(TIM17, TIM_OC1);
 	timer_enable_break_main_output(TIM17);
-	timer_set_period(TIM17, 179);
+	timer_set_period(TIM17, LED_TIMER_PERIOD-1);
 
 	timer_enable_counter(TIM17);
 	dma_enable_channel(DMA1, DMA_CHANNEL1);
@@ -68,7 +69,7 @@ void led_setup(){
 	timer_set_oc_mode(TIM15, TIM_OC1, TIM_OCM_PWM1);
 	timer_enable_oc_output(TIM15, TIM_OC1);
 	timer_enable_break_main_output(TIM15);
-	timer_set_period(TIM15, 179);
+	timer_set_period(TIM15, LED_TIMER_PERIOD-1);
 
 	timer_enable_counter(TIM15);
 	dma_enable_channel(DMA1, DMA_CHANNEL2);
@@ -103,7 +104,7 @@ void setLEDcolor(uint8_t strip, uint32_t LEDnumber, uint8_t RED, uint8_t GREEN, 
 	}
 
 }
-
+/*
 void setWHOLEcolor(uint8_t strip, uint8_t RED, uint8_t GREEN, uint8_t BLUE) {
 	uint32_t index;
 
@@ -149,3 +150,4 @@ void fillBufferWhite(uint8_t strip) {
 	}
 }
 
+*/

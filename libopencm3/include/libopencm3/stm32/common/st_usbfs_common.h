@@ -300,3 +300,4 @@ LGPL License Terms @ref lgpl_license
 #endif
 /** @endcond */
 
+#include <libopencm3/stm32/flash.h>
