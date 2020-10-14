@@ -6,6 +6,8 @@ CFILES = main.c
 CFILES += setup.c
 CFILES += led.c
 CFILES += usb.c
+CFILES += oled.c
+CFILES += oled_fonts.c
 
 
 # TODO - you will need to edit these two lines!

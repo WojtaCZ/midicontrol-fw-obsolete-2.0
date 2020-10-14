@@ -1,5 +1,4 @@
 #include <usb.h>
-#include <setup.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/gpio.h>
@@ -23,11 +22,13 @@ usbd_device *usbd_fs_device;
 
 #define INTERFACE_COUNT 4
 
+static uint8_t usbd_control_buffer[256];
+
 enum {
-    INTERFACE_CDC_COMM = 0,
-    INTERFACE_CDC_DATA = 1,
-    INTERFACE_AUDIO_CONTROL = 2,
-    INTERFACE_MIDI_STREAMING = 3,
+    INTERFACE_MIDI_STREAMING = 0,
+	INTERFACE_CDC_COMM = 1,
+    INTERFACE_CDC_DATA = 2,
+    INTERFACE_AUDIO_CONTROL = 3,
 };
 
 enum {
@@ -56,7 +57,7 @@ static const struct usb_device_descriptor device_descriptor = {
     .bcdDevice = 0x0100,
     .iManufacturer = 1,
     .iProduct = 2,
-    .iSerialNumber = 0,
+    .iSerialNumber = 3,
     .bNumConfigurations = 1,
 };
 
@@ -142,10 +143,10 @@ static const struct {
 /*
  * Table B-3: MIDI Adapter Standard AC Interface Descriptor
  */
-static const struct usb_interface_descriptor audio_control_iface[] = {{
+static const struct usb_interface_descriptor audio_control_iface = {
 	.bLength = USB_DT_INTERFACE_SIZE,
 	.bDescriptorType = USB_DT_INTERFACE,
-	.bInterfaceNumber = 0,
+	.bInterfaceNumber = INTERFACE_AUDIO_CONTROL,
 	.bAlternateSetting = 0,
 	.bNumEndpoints = 0,
 	.bInterfaceClass = USB_CLASS_AUDIO,
@@ -155,7 +156,7 @@ static const struct usb_interface_descriptor audio_control_iface[] = {{
 
 	.extra = &audio_control_functional_descriptors,
 	.extralen = sizeof(audio_control_functional_descriptors)
-} };
+};
 
 /*
  * Class-specific MIDI streaming interface descriptor
@@ -234,10 +235,10 @@ static const struct {
 /*
  * Table B-5: MIDI Adapter Standard MS Interface Descriptor
  */
-static const struct usb_interface_descriptor midi_streaming_iface[] = {{
+static const struct usb_interface_descriptor midi_streaming_iface = {
 	.bLength = USB_DT_INTERFACE_SIZE,
 	.bDescriptorType = USB_DT_INTERFACE,
-	.bInterfaceNumber = 1,
+	.bInterfaceNumber = INTERFACE_MIDI_STREAMING,
 	.bAlternateSetting = 0,
 	.bNumEndpoints = 2,
 	.bInterfaceClass = USB_CLASS_AUDIO,
@@ -249,7 +250,7 @@ static const struct usb_interface_descriptor midi_streaming_iface[] = {{
 
 	.extra = &midi_streaming_functional_descriptors,
 	.extralen = sizeof(midi_streaming_functional_descriptors)
-} };
+};
 
 static const struct usb_endpoint_descriptor cdc_comm_endpoints[] = {
     {
@@ -368,6 +369,14 @@ static const struct usb_iface_assoc_descriptor cdc_acm_interface_association = {
 
 
 const struct usb_interface interfaces[] = {
+	{
+        .num_altsetting = 1,
+        .altsetting = &audio_control_iface,
+    },
+	{
+        .num_altsetting = 1,
+        .altsetting = &midi_streaming_iface,
+    },
     {
         .num_altsetting = 1,
         .iface_assoc = &cdc_acm_interface_association,
@@ -377,57 +386,123 @@ const struct usb_interface interfaces[] = {
         .num_altsetting = 1,
         .altsetting = &cdc_data_interface,
     },
-    {
-        .num_altsetting = 1,
-        .altsetting = audio_control_iface,
-    },
-	{
-        .num_altsetting = 1,
-        .altsetting = midi_streaming_iface,
-    },
 };
 
 static const struct usb_config_descriptor config_descriptor = {
     // The length of this header in bytes, 9.
     .bLength = USB_DT_CONFIGURATION_SIZE,
-    // A value of 2 indicates that this is a configuration descriptor.
     .bDescriptorType = USB_DT_CONFIGURATION,
-    // This should hold the total size of the configuration descriptor including
-    // all sub interfaces. This is automatically filled in by the usb stack in
-    // libopencm3.
     .wTotalLength = 0,
-    // The number of interfaces in this configuration.
     .bNumInterfaces = INTERFACE_COUNT,
-    // The index of this configuration. Starts counting from 1.
     .bConfigurationValue = 1,
-    // A string index describing this configration. Zero means not provided.
     .iConfiguration = 0,
-    // Bit flags:
-    // 7: Must be set to 1.
-    // 6: This device is self powered.
-    // 5: This device supports remote wakeup.
-    // 4-0: Must be set to 0.
-    // TODO: Add remote wakeup.
     .bmAttributes = 0b10000000,
-    // The maximum amount of current that this device will draw in 2mA units.
-    // This indicates 100mA.
     .bMaxPower = 50,
-    // The header ends here.
-
-    // A pointer to an array of interfaces.
     .interface = interfaces,
 };
 
 // The string table.
 static const char *usb_strings[] = {
-    "Open Steno Project",
-    "Stenosaurus",
+    "Vojtech Vosahlo",
+    "MIDIControl",
+	"000000000001"
 };
 
 
+static enum usbd_request_return_codes usb_cdc_control(usbd_device *usbd_dev, struct usb_setup_data *req, uint8_t **buf,uint16_t *len, void (**complete)(usbd_device *usbd_dev,						    struct usb_setup_data *req))
+{
+  (void)complete;
+  (void)buf;
+  (void)usbd_dev;
 
-// This adds support for the additional control requests needed for the CDC
-// interfaces.
+  switch(req->bRequest) {
+  case USB_CDC_REQ_SET_CONTROL_LINE_STATE: {
+    /*
+     * This Linux cdc_acm driver requires this to be implemented
+     * even though it's optional in the CDC spec, and we don't
+     * advertise it in the ACM functional descriptor.
+     */
+    char local_buf[10];
+    struct usb_cdc_notification *notif = (void *)local_buf;
+
+    /* We echo signals back to host as notification. */
+    notif->bmRequestType = 0xA1;
+    notif->bNotification = USB_CDC_NOTIFY_SERIAL_STATE;
+    notif->wValue = 0;
+    notif->wIndex = 0;
+    notif->wLength = 2;
+    local_buf[8] = req->wValue & 3;
+    local_buf[9] = 0;
+    // usbd_ep_write_packet(0x83, buf, 10);
+    return USBD_REQ_HANDLED;
+  }
+  case USB_CDC_REQ_SET_LINE_CODING: 
+    if(*len < sizeof(struct usb_cdc_line_coding)) {
+      return USBD_REQ_NOTSUPP;
+    }
+    return USBD_REQ_HANDLED;
+  }
+  return 0;
+}
+
+
+
+
+/* SysEx identity message, preformatted with correct USB framing information */
+const uint8_t sysex_identity[] = {
+	0x04,	/* USB Framing (3 byte SysEx) */
+	0xf0,	/* SysEx start */
+	0x7e,	/* non-realtime */
+	0x00,	/* Channel 0 */
+	0x04,	/* USB Framing (3 byte SysEx) */
+	0x7d,	/* Educational/prototype manufacturer ID */
+	0x66,	/* Family code (byte 1) */
+	0x66,	/* Family code (byte 2) */
+	0x04,	/* USB Framing (3 byte SysEx) */
+	0x51,	/* Model number (byte 1) */
+	0x19,	/* Model number (byte 2) */
+	0x00,	/* Version number (byte 1) */
+	0x04,	/* USB Framing (3 byte SysEx) */
+	0x00,	/* Version number (byte 2) */
+	0x01,	/* Version number (byte 3) */
+	0x00,	/* Version number (byte 4) */
+	0x05,	/* USB Framing (1 byte SysEx) */
+	0xf7,	/* SysEx end */
+	0x00,	/* Padding */
+	0x00,	/* Padding */
+};
+
+static void usb_midi_rx(usbd_device *dev, uint8_t ep)
+{
+	(void)ep;
+
+	char buf[64];
+	int len = usbd_ep_read_packet(dev, ENDPOINT_MIDI_DATA_OUT, buf, 64);
+
+	/*if(len){
+		usbd_ep_write_packet(dev, ENDPOINT_MIDI_DATA_IN, sysex_identity, sizeof(sysex_identity));
+	}*/
+}
+
+static void usb_cdc_rx(usbd_device *usbd_dev, uint8_t ep){
+	(void)ep;
+	char buf[64];
+	int len = usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
+
+	if (len) {
+		usbd_ep_write_packet(usbd_dev, 0x82, buf, len);
+		buf[len] = 0;
+	}
+}
+
+uint32_t usb_cdc_tx(void *buf, int len){
+	return usbd_ep_write_packet(usbd_fs_device, ENDPOINT_CDC_DATA_IN, buf, len);
+}
+
+uint32_t usb_midi_tx(void *buf, int len){
+	return usbd_ep_write_packet(usbd_fs_device, ENDPOINT_MIDI_DATA_IN, buf, len);
+}
+
 static int cdcacm_control_request_handler(
     usbd_device *dev,
     struct usb_setup_data *req,
@@ -454,77 +529,56 @@ static int cdcacm_control_request_handler(
     return USBD_REQ_NOTSUPP;
 }
 
-
 // This function is called when the target is an interface.
-/*static int interface_control_request_handler(
+static int interface_control_request_handler(
     usbd_device *dev,
     struct usb_setup_data *req,
     uint8_t **buf,
     uint16_t *len,
     void (**complete)(usbd_device *, struct usb_setup_data *)) {
 
-    if (req->wIndex == INTERFACE_RAW_HID) {
+   /* if (req->wIndex == INTERFACE_RAW_HID) {
         return raw_hid_control_request_handler(dev, req, buf, len, complete);
-    }
+    }*/
 
     if (req->wIndex == INTERFACE_CDC_COMM) {
         return cdcacm_control_request_handler(dev, req, buf, len, complete);
     }
-    return USBD_REQ_NEXT_CALLBACK;
-}*/
 
-// The device is not configured for its function until the host chooses a
-// configuration even if the device only supports one configuration like this
-// one. This function sets up the real USB interface that we want to use. It
-// will be called again if the device is reset by the host so all setup needs to
-// happen here.
+    /*if (req->wIndex == INTERFACE_KEYBOARD_HID) {
+        return keyboard_hid_control_request_handler(
+            dev, req, buf, len, complete);
+    }*/
+
+    // This handler didn't handle this command, try the next one.
+    return USBD_REQ_NEXT_CALLBACK;
+}
+
 static void set_config_handler(usbd_device *dev, uint16_t wValue) {
     (void)dev;
     (void)wValue;
 
-    // The address argument uses the MSB to indicate whether data is going in to
-    // the host or out to the device (0 for out, 1 for in).
-    // HID endpoints:
-    // Set up endpoint 1 for data going IN to the host.
-    /*usbd_ep_setup(
-        dev, ENDPOINT_RAW_HID_IN, USB_ENDPOINT_ATTR_INTERRUPT, 64, NULL);*/
-    // Set up endpoint 1 for data coming OUT from the host.
-   /* usbd_ep_setup(dev, 
-                  ENDPOINT_RAW_HID_OUT, 
-                  USB_ENDPOINT_ATTR_INTERRUPT, 
-                  64, 
-                  hid_rx_callback);*/
     // CDC endpoints:
     // OUT endpoint for data.
-    usbd_ep_setup(dev, ENDPOINT_CDC_DATA_OUT, USB_ENDPOINT_ATTR_BULK, 64, NULL);
+    usbd_ep_setup(dev, ENDPOINT_CDC_DATA_OUT, USB_ENDPOINT_ATTR_BULK, 64, usb_cdc_rx);
     // IN endpoint for data.
     usbd_ep_setup(dev, ENDPOINT_CDC_DATA_IN, USB_ENDPOINT_ATTR_BULK, 64, NULL);
     // Useless IN endpoint for comm.
     // TODO: Can this be smaller?
-    usbd_ep_setup(
-        dev, ENDPOINT_CDC_COMM_IN, USB_ENDPOINT_ATTR_INTERRUPT, 8, NULL);
+    usbd_ep_setup(dev, ENDPOINT_CDC_COMM_IN, USB_ENDPOINT_ATTR_INTERRUPT, 8, NULL);
 
-   /* usbd_ep_setup(dev, 
-                  ENDPOINT_KEYBOARD_HID_IN, 
-                  USB_ENDPOINT_ATTR_INTERRUPT, 
-                  32, 
-                  NULL);*/
+	//MIDI endpoints:
+	usbd_ep_setup(dev, ENDPOINT_MIDI_DATA_OUT, USB_ENDPOINT_ATTR_BULK, 64, usb_midi_rx);
+	usbd_ep_setup(dev, ENDPOINT_MIDI_DATA_IN, USB_ENDPOINT_ATTR_BULK, 64, NULL);
+
 
     // This callback is registered for requests that are sent to an interface.
     // It does this by applying the mask to bmRequestType and making sure it is
     // equal to the supplied value.
-    /*usbd_register_control_callback(
-        dev,
-        USB_REQ_TYPE_INTERFACE, 
-        USB_REQ_TYPE_RECIPIENT, 
-        interface_control_request_handler); */
+    usbd_register_control_callback(dev, USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_RECIPIENT, interface_control_request_handler);
+
+	 //usbd_register_control_callback(dev, USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT, usb_cdc_control);
 }
-
-// The buffer used for control requests. This needs to be big enough to hold any
-// descriptor, the largest of which will be the configuration descriptor.
-// TODO: Figure out how big this really needs to be.
-static uint8_t usbd_control_buffer[256];
-
 
 void usb_setup(){
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO_USB_DM | GPIO_USB_DP);
@@ -538,21 +592,13 @@ void usb_setup(){
 	rcc_osc_on(RCC_HSI48);
 	rcc_wait_for_osc_ready(RCC_HSI48);
 
-	/*usbd_fs_device = usbd_init(&st_usbfs_v2_usb_driver, &device_descriptor, &config_descriptor,
-			usb_strings, 3,
-			usbd_control_buffer, sizeof(usbd_control_buffer));
+	usbd_fs_device = usbd_init(&st_usbfs_v2_usb_driver, &device_descriptor, &config_descriptor, usb_strings, sizeof(usb_strings), usbd_control_buffer, sizeof(usbd_control_buffer));
 
-	usbd_register_set_config_callback(usbd_fs_device, set_config_handler);*/
-
-	usbd_fs_device = usbd_init(&st_usbfs_v2_usb_driver, &device_descriptor, &config_descriptor,
-			usb_strings, 2,
-			usbd_control_buffer, sizeof(usbd_control_buffer));
-
-	//usbd_register_set_config_callback(usbd_fs_device, usbmidi_set_config);
+	usbd_register_set_config_callback(usbd_fs_device, set_config_handler);
 
    
 }
 
-void usb_lp_isr(){
+void usb_lp_isr(void){
     usbd_poll(usbd_fs_device);
 }

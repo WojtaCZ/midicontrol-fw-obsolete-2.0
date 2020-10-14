@@ -2,6 +2,7 @@
 #include <setup.h>
 #include <led.h>
 #include <usb.h>
+#include <oled.h>
 
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
@@ -43,7 +44,9 @@ int main(void)
 	
 
 	clock_setup();
+	usb_setup();
 	led_setup();
+	oled_setup();
 
 
 
@@ -65,7 +68,7 @@ int main(void)
 	nvic_enable_irq(NVIC_EXTI15_10_IRQ);
 
 
-	usb_setup();
+	
 
 	/* MCO on A8 */
 	//gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO8);
@@ -94,9 +97,9 @@ int main(void)
 	/*SYSCFG_CFGR3 |= SYSCFG_CFGR3_ENREF_HSI48 | SYSCFG_CFGR3_EN_VREFINT;
 	while (!(SYSCFG_CFGR3 & SYSCFG_CFGR3_REF_HSI48_RDYF));*/
 
-	
+	oled_fill(White);
 
-
+	oled_update();
 
 	while (1) {
 		

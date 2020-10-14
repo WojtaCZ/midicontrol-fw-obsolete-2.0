@@ -18,6 +18,12 @@
 #define PORT_USB_DM 	GPIOA
 #define GPIO_USB_DM 	GPIO11
 
+#define PORT_I2C1_SDA 	GPIOB
+#define GPIO_I2C1_SDA 	GPIO7
+
+#define PORT_I2C1_SCL 	GPIOA
+#define GPIO_I2C1_SCL	GPIO15
+
 void clock_setup(void);
 
 #endif

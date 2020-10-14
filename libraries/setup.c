@@ -56,7 +56,7 @@ void clock_setup(void)
 	rcc_periph_clock_enable(RCC_USART2);
 	rcc_periph_clock_enable(RCC_USART3);
 	rcc_periph_clock_enable(RCC_USB);
-	rcc_periph_clock_enable(RCC_ADC2);
+	rcc_periph_clock_enable(RCC_I2C1);
 	rcc_periph_clock_enable(RCC_TIM1);
 	rcc_periph_clock_enable(RCC_TIM2);
 	rcc_periph_clock_enable(RCC_TIM4);
