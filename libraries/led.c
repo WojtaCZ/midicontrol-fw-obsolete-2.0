@@ -11,6 +11,8 @@
 uint8_t ledFrontBuffer[LED_FRONT_BUFFER_SIZE];
 uint8_t ledBackBuffer[LED_BACK_BUFFER_SIZE];
 
+uint32_t led_pending_flags[LED_BACK_NUMBER];
+uint32_t led_statuses[LED_BACK_NUMBER];
 
 
 void led_setup(){
@@ -78,8 +80,123 @@ void led_setup(){
 
 }
 
+//Nastaveni barvy LED podle statusu
+void led_dev_set_status(uint8_t perif, uint8_t status){
+	uint32_t color;
 
-void setLEDcolor(uint8_t strip, uint32_t LEDnumber, uint8_t RED, uint8_t GREEN, uint8_t BLUE) {
+	switch(status){
+		case LED_STATUS_ERR:
+			color = LED_CLR_ERROR;
+		break;
+
+		case LED_STATUS_OK:
+			color = LED_CLR_OK;
+		break;
+
+		case LED_STATUS_DATA:
+			color = LED_CLR_DATA;
+		break;
+
+		case LED_STATUS_LOAD:
+			color = LED_CLR_LOAD;
+		break;
+
+		default:
+			color = 0;
+
+	}
+
+	//Pokude je typu OK, ERR nebo LOAD - nastavi se na pevne sviceni
+	if(status == LED_STATUS_OK || status == LED_STATUS_ERR || status == LED_STATUS_LOAD){
+		led_statuses[perif] = color;
+		led_set_color((perif >> 7) & 0x01, perif & 0x7f, ((led_pending_flags[perif]>>16) & 0xff), ((led_pending_flags[perif]>>8) & 0xff), (led_pending_flags[perif] & 0xff));
+	}else if(status == LED_STATUS_DATA){
+		//Pokud jde o data, udela se jen probliknuti
+		led_pending_flags[perif] = color;
+	}
+}
+
+
+//Nastaveni barvy LED podle statusu
+void led_dev_set_color(uint8_t perif, uint32_t color){
+
+	led_statuses[perif] = color;
+	led_set_color((perif >> 7) & 0x01, perif & 0x7f, ((led_pending_flags[perif]>>16) & 0xff), ((led_pending_flags[perif]>>8) & 0xff), (led_pending_flags[perif] & 0xff));
+}
+
+
+//Rutina pro nastaveni barvy vsech LED najednou
+void led_dev_set_color_all(uint8_t strip, uint32_t color){
+
+	//Rozdeli se na dva "pasky" podle nazvu
+	for(uint16_t i = 0; i < PERIF_COUNT; i++){
+		if(((i & 0x80)>>7) == strip) led_statuses[i] = color;
+	}
+
+	//Nastavi se barva
+	led_set_strip_color(strip, ((color>>16) & 0xff), ((color>>8) & 0xff), (color & 0xff));
+
+}
+
+
+//Rutina pro nastaveni barvy vsech LED najednou
+void led_dev_set_status_all(uint8_t strip, uint8_t status){
+	uint32_t color;
+
+	switch(status){
+		case LED_STATUS_ERR:
+			color = LED_CLR_ERROR;
+		break;
+
+		case LED_STATUS_OK:
+			color = LED_CLR_OK;
+		break;
+
+		case LED_STATUS_DATA:
+			color = LED_CLR_DATA;
+		break;
+
+		case LED_STATUS_LOAD:
+			color = LED_CLR_LOAD;
+		break;
+
+		default:
+			color = 0;
+
+	}
+
+	//Rozdeli se na dva "pasky" podle nazvu
+	for(uint16_t i = 0; i < PERIF_COUNT; i++){
+		if(((i & 0x80)>>7) == strip) led_statuses[i] = color;
+	}
+
+	//Nastavi se barva
+	led_set_strip_color(strip, ((color>>16) & 0xff), ((color>>8) & 0xff), (color & 0xff));
+
+}
+
+
+
+//Rutina pro "probliknuti" kdyz jsou na LED nastavena DATA
+void led_dev_process_pending_status(){
+	//Projde vsechny LED
+	for(uint16_t i = 0; i < PERIF_COUNT; i++){
+		if((i & 0x7f) < LED_BACK_NUMBER){
+			if(led_pending_flags[i] != 0){
+				//Pokud data nebyla nastavena, nastavi barvu a vycisti flag
+				led_set_color((i >> 7) & 0x01,i & 0x7f, ((led_pending_flags[i]>>16) & 0xff), ((led_pending_flags[i]>>8) & 0xff), (led_pending_flags[i] & 0xff));
+				led_pending_flags[i] = 0;
+			}else{
+				//Nastavi zpet puvodni barvu led
+				led_set_color((i >> 7) & 0x01,i & 0x7f, ((led_statuses[i]>>16) & 0xff), ((led_statuses[i]>>8) & 0xff), (led_statuses[i] & 0xff));
+			}
+		}
+	}
+
+}
+
+
+void led_set_color(uint8_t strip, uint32_t LEDnumber, uint8_t RED, uint8_t GREEN, uint8_t BLUE) {
 	uint8_t tempBuffer[24];
 	uint32_t i;
 	uint32_t LEDindex;
@@ -104,50 +221,62 @@ void setLEDcolor(uint8_t strip, uint32_t LEDnumber, uint8_t RED, uint8_t GREEN, 
 	}
 
 }
-/*
-void setWHOLEcolor(uint8_t strip, uint8_t RED, uint8_t GREEN, uint8_t BLUE) {
+
+void led_set_strip_color(uint8_t strip, uint8_t RED, uint8_t GREEN, uint8_t BLUE){
 	uint32_t index;
 
-	for (index = 0; index < LED_NUMBER; index++)
-		setLEDcolor(strip, index, RED, GREEN, BLUE);
+	for (index = 0; index < ((strip == LED_STRIP_FRONT) ? LED_FRONT_NUMBER : LED_BACK_NUMBER); index++)
+		led_set_color(strip, index, RED, GREEN, BLUE);
 }
 
-void fillBufferBlack(uint8_t strip) {
+void led_fill_buff_black(uint8_t strip){
 	uint32_t index, buffIndex;
 	buffIndex = 0;
 
-	for (index = 0; index < RESET_SLOTS_BEGIN; index++) {
-		LEDbuffer[strip][buffIndex] = LED_RESET;
+	for (index = 0; index < LED_RESET_SLOTS_BEGIN; index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = LED_RESET;
+		}else ledBackBuffer[buffIndex] = LED_RESET;
+		
 		buffIndex++;
 	}
-	for (index = 0; index < LED_DATA_SIZE; index++) {
-		LEDbuffer[strip][buffIndex] = LED_0;
+	for (index = 0; index < ((strip == LED_STRIP_FRONT) ? LED_FRONT_DATA_SIZE : LED_BACK_DATA_SIZE); index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = LED_0;
+		}else ledBackBuffer[buffIndex] = LED_0;
 		buffIndex++;
 	}
 	buffIndex++;
-	for (index = 0; index < RESET_SLOTS_END; index++) {
-		LEDbuffer[strip][buffIndex] = 0;
+	for (index = 0; index < LED_RESET_SLOTS_END; index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = 0;
+		}else ledBackBuffer[buffIndex] = 0;
 		buffIndex++;
 	}
 }
 
-void fillBufferWhite(uint8_t strip) {
+void led_fill_buff_white(uint8_t strip){
 	uint32_t index, buffIndex;
 	buffIndex = 0;
 
-	for (index = 0; index < RESET_SLOTS_BEGIN; index++) {
-		LEDbuffer[strip][buffIndex] = LED_RESET;
+	for (index = 0; index < LED_RESET_SLOTS_BEGIN; index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = LED_RESET;
+		}else ledBackBuffer[buffIndex] = LED_RESET;
+		
 		buffIndex++;
 	}
-	for (index = 0; index < LED_DATA_SIZE; index++) {
-		LEDbuffer[strip][buffIndex] = LED_1;
+	for (index = 0; index < ((strip == LED_STRIP_FRONT) ? LED_FRONT_DATA_SIZE : LED_BACK_DATA_SIZE); index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = LED_1;
+		}else ledBackBuffer[buffIndex] = LED_1;
 		buffIndex++;
 	}
 	buffIndex++;
-	for (index = 0; index < RESET_SLOTS_END; index++) {
-		LEDbuffer[strip][buffIndex] = 0;
+	for (index = 0; index < LED_RESET_SLOTS_END; index++) {
+		if(strip == LED_STRIP_FRONT){
+			ledFrontBuffer[buffIndex] = 0;
+		}else ledBackBuffer[buffIndex] = 0;
 		buffIndex++;
 	}
 }
-
-*/

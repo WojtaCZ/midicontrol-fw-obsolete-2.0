@@ -31,9 +31,9 @@ typedef struct {
 void oled_setup(void);
 void oled_update(void);
 void oled_fill(OLED_COLOR color);
-void oled_drawPixel(uint8_t x, uint8_t y, OLED_COLOR color);
-char oled_writeChar(char ch, FontDef Font, OLED_COLOR color);
-char oled_writeString(char* str, FontDef Font, OLED_COLOR color);
-void oled_setCursor(uint8_t x, uint8_t y);
+void oled_draw_pixel(uint8_t x, uint8_t y, OLED_COLOR color);
+char oled_write_char(char ch, FontDef Font, OLED_COLOR color);
+char oled_write_string(char* str, FontDef Font, OLED_COLOR color);
+void oled_set_cursor(uint8_t x, uint8_t y);
 
 #endif

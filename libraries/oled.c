@@ -136,7 +136,7 @@ void oled_fill(OLED_COLOR color) {
 //    X => X Coordinate
 //    Y => Y Coordinate
 //    color => Pixel color
-void oled_drawPixel(uint8_t x, uint8_t y, OLED_COLOR color) {
+void oled_draw_pixel(uint8_t x, uint8_t y, OLED_COLOR color) {
     if(x >= OLED_WIDTH || y >= OLED_HEIGHT) {
         // Don't write outside the buffer
         return;
@@ -159,7 +159,7 @@ void oled_drawPixel(uint8_t x, uint8_t y, OLED_COLOR color) {
 // ch         => char om weg te schrijven
 // Font     => Font waarmee we gaan schrijven
 // color     => Black or White
-char oled_writeChar(char ch, FontDef Font, OLED_COLOR color) {
+char oled_write_char(char ch, FontDef Font, OLED_COLOR color) {
     uint32_t i, b, j;
 
     // Check remaining space on current line
@@ -175,9 +175,9 @@ char oled_writeChar(char ch, FontDef Font, OLED_COLOR color) {
         b = Font.data[(ch - 32) * Font.FontHeight + i];
         for(j = 0; j < Font.FontWidth; j++) {
             if((b << j) & 0x8000)  {
-                oled_drawPixel(oled.CurrentX + j, (oled.CurrentY + i), (OLED_COLOR) color);
+                oled_draw_pixel(oled.CurrentX + j, (oled.CurrentY + i), (OLED_COLOR) color);
             } else {
-                oled_drawPixel(oled.CurrentX + j, (oled.CurrentY + i), (OLED_COLOR)!color);
+                oled_draw_pixel(oled.CurrentX + j, (oled.CurrentY + i), (OLED_COLOR)!color);
             }
         }
     }
@@ -190,10 +190,10 @@ char oled_writeChar(char ch, FontDef Font, OLED_COLOR color) {
 }
 
 // Write full string to screenbuffer
-char oled_writeString(char* str, FontDef Font, OLED_COLOR color) {
+char oled_write_string(char* str, FontDef Font, OLED_COLOR color) {
     // Write until null-byte
     while (*str) {
-        if (oled_writeChar(*str, Font, color) != *str) {
+        if (oled_write_char(*str, Font, color) != *str) {
             // Char could not be written
             return *str;
         }
@@ -207,7 +207,7 @@ char oled_writeString(char* str, FontDef Font, OLED_COLOR color) {
 }
 
 // Position the cursor
-void oled_setCursor(uint8_t x, uint8_t y) {
+void oled_set_cursor(uint8_t x, uint8_t y) {
     oled.CurrentX = x;
     oled.CurrentY = y;
 }

@@ -23,31 +23,32 @@ void sys_tick_handler(void)
 {
 	if (cnt++ == tempo) {
 		cnt = 0;
-		//gpio_toggle(GPIOB, GPIO5);
+		//led_dev_process_pending_status();
 	}
 }
-
-void exti15_10_isr(void)
-{
-	//gpio_toggle(GPIOB, GPIO5);
-	exti_reset_request(EXTI13);
-}
-
-
-
 
 
 int main(void)
 {
 
-	setLEDcolor(LED_STRIP_BACK, 0, 255, 0, 0);
+	//setLEDcolor(LED_STRIP_BACK, 0, 255, 0, 0);
 	
 
 	clock_setup();
-	usb_setup();
 	led_setup();
+
+	led_dev_set_status_all(LED_STRIP_BACK, LED_STATUS_LOAD);
+
 	oled_setup();
 
+	usb_setup();
+
+	led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
+	
+
+	
+
+	
 
 
 	//rcc_periph_clock_enable(RCC_GPIOB);
@@ -100,9 +101,13 @@ int main(void)
 	oled_fill(White);
 
 	oled_update();
-
+	int i;
 	while (1) {
-		
+		led_dev_process_pending_status();
+		for (i = 0; i < 1000000; i++) {	/* Wait a bit. */
+			__asm__("nop");
+		}
+		led_dev_set_status(LED_DEV_DISP, LED_STATUS_DATA);
 	}
 
 	return 0;
