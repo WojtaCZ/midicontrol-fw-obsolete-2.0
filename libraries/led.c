@@ -1,6 +1,5 @@
 #include <led.h>
 #include <setup.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/dma.h>
@@ -15,7 +14,7 @@ uint32_t led_pending_flags[LED_BACK_NUMBER];
 uint32_t led_statuses[LED_BACK_NUMBER];
 
 
-void led_setup(){
+void led_init(){
 
 	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO_FRONT_LED | GPIO_BACK_LED);
 	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_FRONT_LED | GPIO_BACK_LED);

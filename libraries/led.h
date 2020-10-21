@@ -1,8 +1,7 @@
 #ifndef LED_H
 #define LED_H
 
-#include <stdio.h>
-#include <unistd.h>
+#include "global.h"
 
 #define LED_STRIP_BACK				0
 #define LED_STRIP_FRONT				1
@@ -28,7 +27,7 @@
 
 //Definice pro device LED
 
-#define PERIF_COUNT	(4 | 0x80)
+#define PERIF_COUNT	            (4 | 0x80)
 
 #define LED_CLR_OK		        0x004000
 #define LED_CLR_ERROR	        0x400000
@@ -60,7 +59,7 @@
 #define LED_FRONT4				(3 | 0x80)
 
 
-void led_setup(void);
+void led_init(void);
 void led_set_color(uint8_t strip, uint32_t LEDnumber, uint8_t RED, uint8_t GREEN, uint8_t BLUE);
 void led_set_strip_color(uint8_t strip, uint8_t RED, uint8_t GREEN, uint8_t BLUE);
 void led_fill_buff_black(uint8_t strip);

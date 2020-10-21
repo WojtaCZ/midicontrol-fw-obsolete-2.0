@@ -3,6 +3,7 @@
 #include <led.h>
 #include <usb.h>
 #include <oled.h>
+#include <io.h>
 
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
@@ -13,37 +14,59 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/assert.h>
+#include <libopencm3/cm3/scb.h>
 
 
-
+int counter = 0, counter2 = 0;
 volatile int cnt = 0;
-volatile int tempo = 2000;
+volatile int tempo = 30;
 
 void sys_tick_handler(void)
 {
 	if (cnt++ == tempo) {
 		cnt = 0;
-		//led_dev_process_pending_status();
+
+		oled_fill(Black);
+		oled_set_cursor(0, 20);
+
+		char buff[30];
+		sprintf(buff, "C: %d %d", counter, counter2);
+		oled_write_string(buff, Font_7x10, White);
+
+		oled_update();
 	}
+
+	io_sw_read();
+	io_encoder_read();
 }
 
 
 int main(void)
 {
 
-	//setLEDcolor(LED_STRIP_BACK, 0, 255, 0, 0);
-	
+	/*#define FW_ADDR    0x1FFF0000
 
-	clock_setup();
-	led_setup();
+	SCB_VTOR = FW_ADDR & 0xFFFF;
+
+	__asm__ volatile("msr msp, %0"::"g"(*(volatile uint32_t *)FW_ADDR));
+
+	(*(void (**)())(FW_ADDR + 4))();*/
+
+
+	clock_init();
+	io_init();
+	led_init();
+	led_dev_process_pending_status();
 
 	led_dev_set_status_all(LED_STRIP_BACK, LED_STATUS_LOAD);
+	led_dev_process_pending_status();
 
-	oled_setup();
+	oled_init();
 
-	usb_setup();
+	usb_init();
 
 	led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
+	led_dev_process_pending_status();
 	
 
 	
@@ -66,7 +89,7 @@ int main(void)
 	exti_set_trigger(EXTI13, EXTI_TRIGGER_RISING);
 	exti_enable_request(EXTI13);*/
 
-	nvic_enable_irq(NVIC_EXTI15_10_IRQ);
+	//nvic_enable_irq(NVIC_EXTI15_10_IRQ);
 
 
 	
@@ -98,16 +121,15 @@ int main(void)
 	/*SYSCFG_CFGR3 |= SYSCFG_CFGR3_ENREF_HSI48 | SYSCFG_CFGR3_EN_VREFINT;
 	while (!(SYSCFG_CFGR3 & SYSCFG_CFGR3_REF_HSI48_RDYF));*/
 
-	oled_fill(White);
+	oled_fill(Black);
 
-	oled_update();
-	int i;
+	oled_set_cursor(0, 0);
+	oled_write_string("AAAAAAAAA", Font_7x10, White);
+
+
 	while (1) {
-		led_dev_process_pending_status();
-		for (i = 0; i < 1000000; i++) {	/* Wait a bit. */
-			__asm__("nop");
-		}
-		led_dev_set_status(LED_DEV_DISP, LED_STATUS_DATA);
+
+
 	}
 
 	return 0;

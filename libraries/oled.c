@@ -1,7 +1,5 @@
 #include <oled.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
 #include <libopencm3/stm32/i2c.h>
@@ -16,7 +14,7 @@ uint16_t oledDmaIndex;
 
 static OLED_t oled;
 
-void oled_setup(){
+void oled_init(){
 
     gpio_mode_setup(PORT_I2C1_SCL, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO_I2C1_SCL);
     gpio_mode_setup(PORT_I2C1_SDA, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO_I2C1_SDA);
@@ -137,6 +135,10 @@ void oled_fill(OLED_COLOR color) {
 //    Y => Y Coordinate
 //    color => Pixel color
 void oled_draw_pixel(uint8_t x, uint8_t y, OLED_COLOR color) {
+
+    x += OLED_XOFFSET;
+    y += OLED_YOFFSET;
+    
     if(x >= OLED_WIDTH || y >= OLED_HEIGHT) {
         // Don't write outside the buffer
         return;
@@ -149,9 +151,9 @@ void oled_draw_pixel(uint8_t x, uint8_t y, OLED_COLOR color) {
 
     // Draw in the right color
     if(color == White) {
-        oledScreenBuffer[1 + x + (y / 8) * OLED_WIDTH] |= 1 << (y % 8);
+        oledScreenBuffer[1 + (y/8) + x + (y / 8) * OLED_WIDTH] |= 1 << (y % 8);
     } else {
-        oledScreenBuffer[1 + x + (y / 8) * OLED_WIDTH] &= ~(1 << (y % 8));
+        oledScreenBuffer[1 + (y/8)+ x + (y / 8) * OLED_WIDTH] &= ~(1 << (y % 8));
     }
 }
 

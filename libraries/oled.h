@@ -1,7 +1,7 @@
 #ifndef OLED_H
 #define OLED_H
 
-#include <setup.h>
+#include "global.h"
 #include <oled_fonts.h>
 
 #define OLED_MEM_CMD			0x00
@@ -10,6 +10,10 @@
 
 #define OLED_WIDTH              130
 #define OLED_HEIGHT             64
+
+#define OLED_XOFFSET            2
+#define OLED_YOFFSET            0
+
 //Velikost bufferu
 #define OLED_SCREENBUF_SIZE		(OLED_WIDTH*OLED_HEIGHT / 8) + 8
 
@@ -28,7 +32,7 @@ typedef struct {
 } OLED_t;
 
 
-void oled_setup(void);
+void oled_init(void);
 void oled_update(void);
 void oled_fill(OLED_COLOR color);
 void oled_draw_pixel(uint8_t x, uint8_t y, OLED_COLOR color);

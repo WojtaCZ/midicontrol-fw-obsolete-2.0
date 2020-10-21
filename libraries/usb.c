@@ -1,7 +1,5 @@
 #include <usb.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
 
@@ -52,7 +50,7 @@ static const struct usb_device_descriptor device_descriptor = {
     .bDeviceProtocol = 1, // Interface Association
     .bMaxPacketSize0 = 64,
     .idVendor = 0x6666, // VID reserved for prototypes
-    .idProduct = 0x1,
+    .idProduct = 0x0001,
     // Version number for the device. Set to 1.0.0 for now.
     .bcdDevice = 0x0100,
     .iManufacturer = 1,
@@ -580,7 +578,7 @@ static void set_config_handler(usbd_device *dev, uint16_t wValue) {
 	 //usbd_register_control_callback(dev, USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT, usb_cdc_control);
 }
 
-void usb_setup(){
+void usb_init(){
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO_USB_DM | GPIO_USB_DP);
 	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO_USB_DM | GPIO_USB_DP);
 
