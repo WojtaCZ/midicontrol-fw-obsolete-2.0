@@ -17,7 +17,7 @@ uint32_t led_statuses[LED_BACK_NUMBER];
 void led_init(){
 
 	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO_FRONT_LED | GPIO_BACK_LED);
-	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_FRONT_LED | GPIO_BACK_LED);
+	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO_FRONT_LED | GPIO_BACK_LED);
 	gpio_set_af(GPIOB, GPIO_AF10, GPIO_BACK_LED);
 	gpio_set_af(GPIOB, GPIO_AF1, GPIO_FRONT_LED);
 

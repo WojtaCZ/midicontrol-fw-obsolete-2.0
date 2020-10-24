@@ -38,4 +38,5 @@
 #define GPIO_ENCODER_SW         GPIO1
 #define GPIO_ENCODER_SW_IRQ     NVIC_EXTI1_IRQ
 
+
 #endif

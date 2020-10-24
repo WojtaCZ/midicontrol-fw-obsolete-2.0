@@ -6,11 +6,12 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
 
-uint8_t oledInitBuffer[255];
 uint8_t oledScreenBuffer[OLED_SCREENBUF_SIZE];
 uint8_t oledPageBuffer[4];
 uint8_t oledDmaStatus;
 uint16_t oledDmaIndex;
+
+uint8_t oledInitBuffer[29];
 
 static OLED_t oled;
 
@@ -30,7 +31,7 @@ void oled_init(){
 	dma_set_read_from_memory(DMA1, DMA_CHANNEL3);
 
     dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL3);
-    nvic_set_priority(NVIC_DMA1_CHANNEL3_IRQ, 1);
+    //nvic_set_priority(NVIC_DMA1_CHANNEL3_IRQ, );
     nvic_enable_irq(NVIC_DMA1_CHANNEL3_IRQ);
 
 	dmamux_set_dma_channel_request(DMAMUX1, DMA_CHANNEL3, DMAMUX_CxCR_DMAREQ_ID_I2C1_TX);
@@ -53,69 +54,152 @@ void oled_init(){
     i2c_set_7bit_addr_mode(I2C1);
     i2c_peripheral_enable(I2C1);
 
-    uint8_t index = 0;
+    i2c_set_7bit_address(I2C1, OLED_ADD);
 
     //Display Off
-    oledInitBuffer[index++] =  OLED_MEM_CMD;
+    oledInitBuffer[0] =  OLED_MEM_CMD;
     //Display Off
-    oledInitBuffer[index++] = 0xAE;
+    oledInitBuffer[1] = 0xAE;
     //Memory addressing mode
-    oledInitBuffer[index++] = 0x20;
+    oledInitBuffer[2] = 0x20;
     //00,Horizontal Addressing Mode;
     //01,Vertical Addressing Mode;
     //10,Page Addressing Mode (RESET); 
-    oledInitBuffer[index++] = 0x10;
+    oledInitBuffer[3] = 0x10;
     //Set page start address
-    oledInitBuffer[index++] = 0xB0;
+    oledInitBuffer[4] = 0xB0;
     //COM Out scan direction
-    oledInitBuffer[index++] = 0xC8;
+    oledInitBuffer[5] = 0xC8;
     //Low column addressoled
-    oledInitBuffer[index++] = 0x00;
+    oledInitBuffer[6] = 0x00;
     //High column address
-    oledInitBuffer[index++] = 0x10;
+    oledInitBuffer[7] = 0x10;
     //Start line address
-    oledInitBuffer[index++] = 0x40;
+    oledInitBuffer[8] = 0x40;
     //Contrast
-    oledInitBuffer[index++] = 0x81;
-    oledInitBuffer[index++] = 0xFF;
+    oledInitBuffer[9] = 0x81;
+    oledInitBuffer[10] = 0xFF;
     //Segment remap 0 to 127
-    oledInitBuffer[index++] = 0xA1;
+    oledInitBuffer[11] = 0xA1;
     //Normal color
-    oledInitBuffer[index++] = 0xA6;
+    oledInitBuffer[12] = 0xA6;
     //Set MUX ratio
-    oledInitBuffer[index++] = 0xA8;
-    oledInitBuffer[index++] = 0x3F;
+    oledInitBuffer[13] = 0xA8;
+    oledInitBuffer[14] = 0x3F;
     //Output follows RAM
-    oledInitBuffer[index++] = 0xA4;
+    oledInitBuffer[15] = 0xA4;
     //Set display offset
-    oledInitBuffer[index++] = 0xD3;
-    oledInitBuffer[index++] = 0x00;
+    oledInitBuffer[16] = 0xD3;
+    oledInitBuffer[17] = 0x00;
     //Set display clock divide ratio
-    oledInitBuffer[index++] = 0xD5;
-    oledInitBuffer[index++] = 0xF0;
+    oledInitBuffer[18] = 0xD5;
+    oledInitBuffer[19] = 0xF0;
     //Set precharge period
-    oledInitBuffer[index++] = 0xD9;
-    oledInitBuffer[index++] = 0x34;
+    oledInitBuffer[20] = 0xD9;
+    oledInitBuffer[21] = 0x34;
     //Set COM pin HW config
-    oledInitBuffer[index++] = 0xDA;
-    oledInitBuffer[index++] = 0x12;
+    oledInitBuffer[22] = 0xDA;
+    oledInitBuffer[23] = 0x12;
     //Set VCOMH (0.77*Vcc)
-    oledInitBuffer[index++] = 0xDB;
-    oledInitBuffer[index++] = 0x20;
+    oledInitBuffer[24] = 0xDB;
+    oledInitBuffer[25] = 0x20;
     //Set DC-DC enable
-    oledInitBuffer[index++] = 0x8D;
-    oledInitBuffer[index++] = 0x14;
+    oledInitBuffer[26] = 0x8D;
+    oledInitBuffer[27] = 0x14;
     //Turn on oled
-    oledInitBuffer[index++] = 0xAF;
+    oledInitBuffer[28] = 0xAF;
+    
+   /* i2c_transfer7(I2C1, OLED_ADD, &oledInitBuffer[0], index, NULL, 0);
 
-    i2c_transfer7(I2C1, OLED_ADD, oledInitBuffer, index, NULL, 0);
+    while(!i2c_transfer_complete(I2C1)){
+        
+    }*/
+
+    //i2c_reset();
+
+    dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledInitBuffer[0]);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, 29);
+    i2c_set_bytes_to_transfer(I2C1, 29);
+    //i2c_enable_interrupt(I2C1, I2C_CR1_TCIE);
+    i2c_enable_autoend(I2C1);
+
+    dma_enable_channel(DMA1, DMA_CHANNEL3);
+
+    i2c_enable_txdma(I2C1);
+    i2c_send_start(I2C1);
+
 
     oled.CurrentX = 0;
     oled.CurrentY = 0;
 
-    oled.Initialized = 1;
+    //oled.Initialized = 1;
 
 }
+
+void oled_update(){
+    if(oled.Initialized){
+        oledPageBuffer[0] = OLED_MEM_CMD;
+        oledPageBuffer[1] = 0xB0;
+        oledPageBuffer[2] = 0x00;
+        oledPageBuffer[3] = 0x10;
+
+        oledScreenBuffer[0] = OLED_MEM_DAT;
+        oledScreenBuffer[131] = OLED_MEM_DAT;
+        oledScreenBuffer[262] = OLED_MEM_DAT;
+        oledScreenBuffer[393] = OLED_MEM_DAT;
+        oledScreenBuffer[524] = OLED_MEM_DAT;
+        oledScreenBuffer[655] = OLED_MEM_DAT;
+        oledScreenBuffer[786] = OLED_MEM_DAT;
+        oledScreenBuffer[917] = OLED_MEM_DAT;
+
+        oledDmaStatus = 0;
+        oledDmaIndex = 0;
+
+        dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledPageBuffer[0]);
+        dma_set_number_of_data(DMA1, DMA_CHANNEL3, 4);
+        i2c_set_bytes_to_transfer(I2C1, 4);
+        //i2c_enable_interrupt(I2C1, I2C_CR1_TCIE);
+        i2c_enable_autoend(I2C1);
+
+        dma_enable_channel(DMA1, DMA_CHANNEL3);
+
+        i2c_enable_txdma(I2C1);
+        i2c_send_start(I2C1);
+    }
+
+}
+
+void dma1_channel3_isr(void){
+    dma_disable_channel(DMA1, DMA_CHANNEL3);
+    if(oled.Initialized){
+        if(oledDmaStatus < 15){
+            if(oledDmaStatus % 2){
+                oledPageBuffer[1]++;
+                oledDmaIndex += 131;
+                dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledPageBuffer[0]);
+                dma_set_number_of_data(DMA1, DMA_CHANNEL3, 4);
+                i2c_set_bytes_to_transfer(I2C1, 4);
+                dma_enable_channel(DMA1, DMA_CHANNEL3);
+            }else{
+                dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledScreenBuffer[oledDmaIndex]);
+                dma_set_number_of_data(DMA1, DMA_CHANNEL3, 131);
+                i2c_set_bytes_to_transfer(I2C1, 131);
+                dma_enable_channel(DMA1, DMA_CHANNEL3);
+            }
+            oledDmaStatus++;
+            i2c_send_start(I2C1);
+        }else{
+            dma_disable_channel(DMA1, DMA_CHANNEL3);
+        }
+    }else{
+        dma_disable_channel(DMA1, DMA_CHANNEL3);
+        i2c_disable_txdma(I2C1);
+        oled.Initialized = 1;
+    }
+    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
+    nvic_clear_pending_irq(NVIC_DMA1_CHANNEL3_IRQ);
+}
+
 
 // Fill the whole screen with the given color
 void oled_fill(OLED_COLOR color) {
@@ -212,61 +296,4 @@ char oled_write_string(char* str, FontDef Font, OLED_COLOR color) {
 void oled_set_cursor(uint8_t x, uint8_t y) {
     oled.CurrentX = x;
     oled.CurrentY = y;
-}
-
-void oled_update(){
-
-    oledPageBuffer[0] = OLED_MEM_CMD;
-    oledPageBuffer[1] = 0xB0;
-    oledPageBuffer[2] = 0x00;
-    oledPageBuffer[3] = 0x10;
-
-    oledScreenBuffer[0] = OLED_MEM_DAT;
-    oledScreenBuffer[131] = OLED_MEM_DAT;
-    oledScreenBuffer[262] = OLED_MEM_DAT;
-    oledScreenBuffer[393] = OLED_MEM_DAT;
-    oledScreenBuffer[524] = OLED_MEM_DAT;
-    oledScreenBuffer[655] = OLED_MEM_DAT;
-    oledScreenBuffer[786] = OLED_MEM_DAT;
-    oledScreenBuffer[917] = OLED_MEM_DAT;
-
-    oledDmaStatus = 0;
-    oledDmaIndex = 0;
-
-    dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledPageBuffer[0]);
-	dma_set_number_of_data(DMA1, DMA_CHANNEL3, 4);
-    i2c_set_bytes_to_transfer(I2C1, 4);
-    //i2c_enable_interrupt(I2C1, I2C_CR1_TCIE);
-    i2c_enable_autoend(I2C1);
-
-    dma_enable_channel(DMA1, DMA_CHANNEL3);
-
-    i2c_enable_txdma(I2C1);
-    i2c_send_start(I2C1);
-
-}
-
-void dma1_channel3_isr(void){
-    dma_disable_channel(DMA1, DMA_CHANNEL3);
-    if(oledDmaStatus < 15){
-        if(oledDmaStatus % 2){
-            oledPageBuffer[1]++;
-            oledDmaIndex += 131;
-            dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledPageBuffer[0]);
-	        dma_set_number_of_data(DMA1, DMA_CHANNEL3, 4);
-            i2c_set_bytes_to_transfer(I2C1, 4);
-            dma_enable_channel(DMA1, DMA_CHANNEL3);
-        }else{
-            dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)&oledScreenBuffer[oledDmaIndex]);
-	        dma_set_number_of_data(DMA1, DMA_CHANNEL3, 131);
-            i2c_set_bytes_to_transfer(I2C1, 131);
-            dma_enable_channel(DMA1, DMA_CHANNEL3);
-        }
-        oledDmaStatus++;
-        i2c_send_start(I2C1);
-    }else{
-        dma_disable_channel(DMA1, DMA_CHANNEL3);
-    }
-    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
-    nvic_clear_pending_irq(NVIC_DMA1_CHANNEL3_IRQ);
 }

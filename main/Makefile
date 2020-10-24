@@ -10,7 +10,8 @@ CFILES += oled.c
 CFILES += oled_fonts.c
 CFILES += midi.c
 CFILES += io.c
-
+CFILES += menu.c
+CFILES += scheduler.c
 
 # TODO - you will need to edit these two lines!
 DEVICE=stm32g431cbt

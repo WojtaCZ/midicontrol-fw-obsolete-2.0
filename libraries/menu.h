@@ -1,19 +1,8 @@
-/*
- *
- *
- * Menu2 v2.0
- * Martin Hubacek
- * 18.3.2013
- * http://martinhubacek.cz
- *
- *
- */
-
-
 #ifndef MENU_H
 #define MENU_H
 
 #include "oled.h"
+#include "oled_fonts.h"
 
 #define MENU_LANGUAGES 2
 
@@ -21,39 +10,35 @@
 #define LANGUAGE_CZECH 0
 #define LANGUAGE_ENGLISH 1
 
-unsigned char menuLanguage;
-
 // Set rows/cols based on your font (for graphical displays)
-#define ROW(x) ((x)*64)
-#define COL(y) ((y)*128)
-// For character LCDs use definitions below
-//#define ROW(x) (x)
-//#define COL(y) (y)
+#define ROW(x) ((x)*18)
+#define COL(y) ((y)*11)
+
+#define MENU_TOP_OFFSET			21
+#define MENU_LEFT_OFFSET		0
+#define MENU_TEXT_SPACING		3
 
 // Number of items on one screen
 // Not including title
-#define MENU_LINES 5
-
-//1
-//2-scroll dolu - sipka neni na 1. radku
-//3ok
-//4 posledni scroll dolu blbne
-//5ok
+#define MENU_LINES 2
 
 // Symbol which is displayed in front of the selected item
 // This symbol doesn't appear when MENU_LINES == 1
-#define ARROW_SYMBOL ">"
+#define MENU_SELECTED_SYMBOL								32	
+#define MENU_NOT_SELECTED_SYMBOL 							33
+
+#define MENU_SELECTED_CHECKBOX_CHECKED_SYMBOL 				41
+#define MENU_NOT_SELECTED_CHECKBOX_CHECKED_SYMBOL 			39
+#define MENU_SELECTED_CHECKBOX_NOT_CHECKED_SYMBOL 			40
+#define MENU_NOT_SELECTED_CHECKBOX_NOT_CHECKED_SYMBOL 		38
+
+#define MENU_ICON_FONT Icon_11x18
+
+#define MENU_SCROLL_PAUSE	2
+
 // How many spaces is between arrow symbol and menu item
 // useful to set zero on smaller displays
-#define ARROW_GAP 1
-
-// Clear display
-#define displayClear()	oled_fill(Black);
-
-
-// Optional function to write buffer to display - comment if not used
-#define displayDraw()		oled_update();
-
+#define MENU_SELECTOR_SPACING	 3
 
 // 0-3 bits
 #define MENU_PARAMETER_MASK 0x0F
@@ -72,24 +57,35 @@ unsigned char menuLanguage;
 #define MENU_CALLBACK_IS_FUNCTION 0x80
 
 
+#define MENU_KEY_UP		10	
+#define MENU_KEY_DOWN	20
+#define MENU_KEY_ENTER	30
+
+#define MENU_FONT		Font_11x18
 
 typedef struct SMenuItem {
 	char* text[MENU_LANGUAGES];
 	void (*callback)(void *);
 	int flags;
 	int parameter;
+	uint8_t specSelected;
+	uint8_t specNotSelected;
 } MenuItem;
 
 
 typedef struct SMenu {
 	char* title[MENU_LANGUAGES];
 	int selectedIndex;
-	int refresh;
+	void (*parent)(void *);
 	MenuItem *items[];
 } Menu;
 
 
+void menu_show(Menu *menu);
+void menu_update();
+void menu_keypress(uint8_t key);
+void menu_back();
+void menu_scroll_callback();
 
-int menu2(Menu *menu);
 
 #endif

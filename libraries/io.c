@@ -1,9 +1,14 @@
 #include <io.h>
+#include "menu.h"
+#include "led.h"
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/cm3/nvic.h>
+
+
+struct Input encoder;
 
 static uint32_t switchOld = 0;
 static uint8_t prevNextCode = 0;
@@ -42,17 +47,38 @@ void io_init(void){
 
 }
 
+void io_keypress_callback(){
+    
+    io_sw_read();
+	io_encoder_read();
+
+    if(encoder.inc != 0 || encoder.dec != 0) {
+        int pos = encoder.inc - encoder.dec;
+        if(pos > 0){
+            menu_keypress(MENU_KEY_DOWN);
+        }else if(pos < 0){
+            menu_keypress(MENU_KEY_UP);
+        }
+        encoder.inc = 0;
+        encoder.dec = 0;
+    }else if(encoder.push != 0){
+        menu_keypress(MENU_KEY_ENTER);
+        led_dev_set_status(LED_FRONT1, LED_STATUS_DATA);
+        encoder.push = 0;
+    }
+}
 
 void io_encoder_dec(void){
-
+    encoder.dec++;
 }
 
 
 void io_encoder_inc(void){
-    
+    encoder.inc++;
 }
 
 
 void io_encoder_push(void){
-    
+    encoder.push = 1;
 }
+

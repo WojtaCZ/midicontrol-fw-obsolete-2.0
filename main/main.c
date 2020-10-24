@@ -4,45 +4,51 @@
 #include <usb.h>
 #include <oled.h>
 #include <io.h>
+#include "../libraries/menu.h"
+#include "scheduler.h"
 
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/flash.h>
+#include <libopencm3/stm32/iwdg.h>
 
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/assert.h>
 #include <libopencm3/cm3/scb.h>
 
+extern struct Menu menu_main;
 
-int counter = 0, counter2 = 0;
-volatile int cnt = 0;
-volatile int tempo = 30;
+
+volatile int counter = 0;
+volatile int tempo = 100000;
 
 void sys_tick_handler(void)
 {
-	if (cnt++ == tempo) {
-		cnt = 0;
+	if (counter++ == tempo) counter = 0;
 
-		oled_fill(Black);
-		oled_set_cursor(0, 20);
+	scheduler_check(counter, &sched_menu_scroll);
+	scheduler_check(counter, &sched_menu_update);
+	scheduler_check(counter, &sched_led_process);
+	scheduler_check(counter, &sched_io_keypress);
 
-		char buff[30];
-		sprintf(buff, "C: %d %d", counter, counter2);
-		oled_write_string(buff, Font_7x10, White);
-
-		oled_update();
-	}
-
-	io_sw_read();
-	io_encoder_read();
+		
 }
 
 
 int main(void)
 {
+
+	
+	
+	int i = 0;
+
+	while(i < 1000000){
+		__asm__("nop");
+		i++;
+	}
 
 	/*#define FW_ADDR    0x1FFF0000
 
@@ -52,24 +58,28 @@ int main(void)
 
 	(*(void (**)())(FW_ADDR + 4))();*/
 
-
 	clock_init();
 	io_init();
-	led_init();
-	led_dev_process_pending_status();
-
-	led_dev_set_status_all(LED_STRIP_BACK, LED_STATUS_LOAD);
-	led_dev_process_pending_status();
 
 	oled_init();
 
 	usb_init();
 
-	led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
-	led_dev_process_pending_status();
-	
+	led_init();
 
-	
+	/*led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
+	led_dev_process_pending_status();*/
+
+	menu_show(&menu_main);
+
+
+	/* 72MHz / 8 => 9000000 counts per second */
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+	systick_set_reload(143999);
+	systick_interrupt_enable();
+	systick_clear();
+	/* Start counting. */
+	systick_counter_enable();
 
 	
 
@@ -121,14 +131,16 @@ int main(void)
 	/*SYSCFG_CFGR3 |= SYSCFG_CFGR3_ENREF_HSI48 | SYSCFG_CFGR3_EN_VREFINT;
 	while (!(SYSCFG_CFGR3 & SYSCFG_CFGR3_REF_HSI48_RDYF));*/
 
-	oled_fill(Black);
-
-	oled_set_cursor(0, 0);
-	oled_write_string("AAAAAAAAA", Font_7x10, White);
-
+	//led_dev_set_status_all(LED_STRIP_BACK, LED_STATUS_LOAD);
+	//led_dev_set_status_all(LED_STRIP_FRONT, LED_STATUS_LOAD);
 
 	while (1) {
 
+		scheduler_process(&sched_menu_scroll);
+		scheduler_process(&sched_menu_update);
+		scheduler_process(&sched_led_process);
+		scheduler_process(&sched_io_keypress);
+		
 
 	}
 
