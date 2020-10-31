@@ -3,4 +3,7 @@
 
 #include "global.h"
 
+
+void midi_init(void);
+
 #endif

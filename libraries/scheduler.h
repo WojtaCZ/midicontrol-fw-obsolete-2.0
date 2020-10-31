@@ -11,6 +11,8 @@
 typedef struct SScheduler {
     //Interval in ms
     int interval;
+    //Counter
+    int counter;
     //Callback to a function
     void (*callback)(void *);
     //Flags
@@ -18,7 +20,7 @@ typedef struct SScheduler {
 } Scheduler;
 
 
-void scheduler_check(int time, Scheduler * sched);
+void scheduler_check(Scheduler * sched);
 void scheduler_process(Scheduler * sched);
 
 #endif

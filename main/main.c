@@ -1,10 +1,11 @@
-#include <main.h>
-#include <setup.h>
-#include <led.h>
-#include <usb.h>
-#include <oled.h>
-#include <io.h>
-#include "../libraries/menu.h"
+#include "main.h"
+#include "setup.h"
+#include "led.h"
+#include "usb.h"
+#include "oled.h"
+#include "io.h"
+#include "menu.h"
+#include "midi.h"
 #include "scheduler.h"
 
 #include <libopencm3/stm32/exti.h>
@@ -21,20 +22,13 @@
 
 extern struct Menu menu_main;
 
+void sys_tick_handler(void){
 
-volatile int counter = 0;
-volatile int tempo = 100000;
-
-void sys_tick_handler(void)
-{
-	if (counter++ == tempo) counter = 0;
-
-	scheduler_check(counter, &sched_menu_scroll);
-	scheduler_check(counter, &sched_menu_update);
-	scheduler_check(counter, &sched_led_process);
-	scheduler_check(counter, &sched_io_keypress);
-
-		
+	scheduler_check(&sched_menu_scroll);
+	scheduler_check(&sched_menu_update);
+	scheduler_check(&sched_led_process);
+	scheduler_check(&sched_io_keypress);
+	scheduler_check(&sched_oled_sleep);			
 }
 
 
@@ -59,30 +53,23 @@ int main(void)
 	(*(void (**)())(FW_ADDR + 4))();*/
 
 	clock_init();
+
 	io_init();
 
 	oled_init();
 
 	usb_init();
 
-	led_init();
+	midi_init();
+
+	//led_init();
 
 	/*led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
 	led_dev_process_pending_status();*/
 
 	menu_show(&menu_main);
 
-
-	/* 72MHz / 8 => 9000000 counts per second */
-	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
-	systick_set_reload(143999);
-	systick_interrupt_enable();
-	systick_clear();
-	/* Start counting. */
-	systick_counter_enable();
-
-	
-
+	systick_init();
 
 	//rcc_periph_clock_enable(RCC_GPIOB);
 	//rcc_periph_clock_enable(RCC_GPIOC);
@@ -138,8 +125,10 @@ int main(void)
 
 		scheduler_process(&sched_menu_scroll);
 		scheduler_process(&sched_menu_update);
-		scheduler_process(&sched_led_process);
+		//scheduler_process(&sched_led_process);
 		scheduler_process(&sched_io_keypress);
+		scheduler_process(&sched_oled_sleep);
+		
 		
 
 	}

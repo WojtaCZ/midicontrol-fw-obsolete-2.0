@@ -1,4 +1,4 @@
-#include <setup.h>
+#include "setup.h"
 
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
@@ -74,6 +74,14 @@ void clock_init(void)
 
 	
 
+}
+
+void systick_init(){
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+	systick_set_reload(143999);
+	systick_interrupt_enable();
+	systick_clear();
+	systick_counter_enable();
 }
 
 void wd_init(){

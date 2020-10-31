@@ -1,19 +1,20 @@
-#include <usb.h>
+#include "usb.h"
+
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
+#include <libopencm3/stm32/syscfg.h>
+#include <libopencm3/stm32/crs.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/desig.h>
 
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
 #include <libopencm3/usb/midi.h>
 #include <libopencm3/usb/audio.h>
 #include <libopencm3/usb/hid.h>
-#include <libopencm3/stm32/desig.h>
 
 #include <libopencm3/cm3/scb.h>
-#include <libopencm3/stm32/syscfg.h>
-#include <libopencm3/stm32/crs.h>
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
 
 usbd_device *usbd_fs_device;
@@ -470,8 +471,7 @@ const uint8_t sysex_identity[] = {
 	0x00,	/* Padding */
 };
 
-static void usb_midi_rx(usbd_device *dev, uint8_t ep)
-{
+static void usb_midi_rx(usbd_device *dev, uint8_t ep){
 	(void)ep;
 
 	char buf[64];

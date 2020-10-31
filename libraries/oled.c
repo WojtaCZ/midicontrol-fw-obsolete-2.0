@@ -1,4 +1,6 @@
-#include <oled.h>
+#include "oled.h"
+#include "scheduler.h"
+
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/dmamux.h>
@@ -12,6 +14,8 @@ uint8_t oledDmaStatus;
 uint16_t oledDmaIndex;
 
 uint8_t oledInitBuffer[29];
+
+extern Scheduler sched_oled_sleep;
 
 static OLED_t oled;
 
@@ -131,13 +135,14 @@ void oled_init(){
 
     oled.CurrentX = 0;
     oled.CurrentY = 0;
+    oled.Sleep = 0;
 
     //oled.Initialized = 1;
 
 }
 
 void oled_update(){
-    if(oled.Initialized){
+    if(oled.Initialized && !oled.Sleep){
         oledPageBuffer[0] = OLED_MEM_CMD;
         oledPageBuffer[1] = 0xB0;
         oledPageBuffer[2] = 0x00;
@@ -200,6 +205,19 @@ void dma1_channel3_isr(void){
     nvic_clear_pending_irq(NVIC_DMA1_CHANNEL3_IRQ);
 }
 
+
+void oled_sleep_callback(){
+    sched_oled_sleep.flags = 0;
+    oled_fill(Black);
+    oled_update();
+    oled.Sleep = 1;
+}
+
+void oled_wakeup_callback(){
+    sched_oled_sleep.flags |= SCHEDULER_ON;
+    sched_oled_sleep.counter = 0;
+    oled.Sleep = 0;
+}
 
 // Fill the whole screen with the given color
 void oled_fill(OLED_COLOR color) {

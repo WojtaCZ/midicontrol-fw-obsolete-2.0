@@ -1,48 +1,49 @@
 #include "menu.h"
 #include "oled.h"
 #include "scheduler.h"
+
 #include <string.h>
 
 
-/*MenuItem item0 = {{"Tick"}, callback, MENU_PARAMETER_IS_NUMBER | MENU_CALLBACK_IS_FUNCTION, (int)&msTick};
-MenuItem item1 = {{"Lang SubMnu"}, (void*)&subMenu,  MENU_CALLBACK_IS_SUBMENU, 0};
-MenuItem itemTime = {{"Time"}, callback, MENU_PARAMETER_IS_STRING | MENU_CALLBACK_IS_FUNCTION, (int)"12:05"};
-MenuItem item2 = {{"Count"}, callback, MENU_ITEM_IS_CHECKBOX | MENU_ITEM_IS_CHECKED | MENU_CALLBACK_IS_FUNCTION};
-MenuItem item3 = {{"Lights"}, callback, MENU_ITEM_IS_CHECKBOX  };
-MenuItem item4 = {{"Sound"}, callback, MENU_ITEM_IS_CHECKBOX | MENU_ITEM_IS_CHECKED };
-MenuItem item5 = {{"Fan"}, callback, MENU_ITEM_IS_CHECKBOX };
-MenuItem item6 = {{"Buzzer"}, callback, MENU_ITEM_IS_CHECKBOX | MENU_ITEM_IS_CHECKED };
-MenuItem item7 = {{"Last check"}, callback, MENU_ITEM_IS_CHECKBOX };*/
+unsigned char menuLanguage;
+
+unsigned char menuItem = 0;
+unsigned char menuLastMenuItem = 255;
+
+unsigned char menuCursorTopPos = 0;
+unsigned char menuTopPos = 0;
+
+int len = 0, i = 0;
+
+uint8_t menuScrollIndex = 0, menuScrollPause = 0, menuScrollPauseDone = 0, menuScrollMax;
 
 extern Scheduler sched_menu_scroll;
 extern Scheduler sched_menu_update;
 
 Menu * menu_actual;
 
-extern Menu menu_main, menu_display, menu_settings;
+extern Menu menu_main, menu_display, menu_settings, menu_set_display;
 
-void callback(){
-
-}
-
-
-
-
-MenuItem item2 = {{"Count"}, callback, MENU_ITEM_IS_CHECKBOX | MENU_ITEM_IS_CHECKED | MENU_CALLBACK_IS_FUNCTION};
-MenuItem item3 = {{"Lights"}, callback, MENU_CALLBACK_IS_FUNCTION};
-MenuItem item4 = {{"Sound"}, callback, MENU_ITEM_IS_CHECKBOX | MENU_ITEM_IS_CHECKED };
-MenuItem item5 = {{"Fan"}, callback, MENU_ITEM_IS_CHECKBOX };
-
-
-
-MenuItem menuitem_play = {{"Prehraj", "Play"}, callback, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_record = {{"Nahraj", "Record"}, callback, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_organ_pwr = {{"Napajeni varhan", "Organ power"}, callback, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX};
+MenuItem menuitem_play = {{"Prehraj", "Play"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_record = {{"Nahraj", "Record"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_organ_pwr = {{"Napajeni varhan", "Organ power"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX};
 MenuItem menuitem_display = {{"Ukazatel", "Display"}, (void*)&menu_display, MENU_CALLBACK_IS_SUBMENU};
 MenuItem menuitem_settings = {{"Nastaveni", "Settings"}, (void*)&menu_settings, MENU_CALLBACK_IS_SUBMENU};
 
 MenuItem menuitem_back = {{"Zpet", "Back"}, (void*)&menu_back, MENU_CALLBACK_IS_FUNCTION, .specSelected = 37, .specNotSelected = 36};
 
+MenuItem menuitem_paired_devices = {{"Sparovana zarizeni", "Paired devices"}, 0, MENU_CALLBACK_IS_SUBMENU};
+MenuItem menuitem_midi_loopback = {{"MIDI Loopback", "MIDI Loopback"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX};
+MenuItem menuitem_midi_state = {{"MIDI Stav", "MIDI state"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_device_info = {{"Informace o zarizeni", "Device info"}, 0, MENU_CALLBACK_IS_FUNCTION};
+
+MenuItem menuitem_display_set = {{"Nastavit", "Set"}, (void*)&menu_set_display, MENU_CALLBACK_IS_SUBMENU};
+MenuItem menuitem_display_state = {{"Stav", "State"}, 0, MENU_CALLBACK_IS_FUNCTION};
+
+MenuItem menuitem_display_set_song = {{"Pisen", "Song"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_display_set_verse = {{"Sloku", "Verse"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_display_set_led = {{"LED", "LED"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_display_set_letter = {{"Pismeno", "Letter"}, 0, MENU_CALLBACK_IS_FUNCTION};
 
 
 Menu menu_main = {
@@ -50,53 +51,41 @@ Menu menu_main = {
     .items = {&menuitem_play, &menuitem_record, &menuitem_organ_pwr, &menuitem_display, &menuitem_settings, 0},
 };
 
-Menu menu_display = {
-    {"Ukazatel","Display"},
-	.parent = &menu_main,
-    .items = { &item2, &item3, &item4, &item5, &menuitem_back, 0},
-};
-
 Menu menu_settings = {
     {"Nastaveni","Settings"},
 	.parent = &menu_main,
-    .items = { &item2, &item3, &item4, &item5, &menuitem_back, 0},
+    .items = { &menuitem_paired_devices, &menuitem_midi_loopback, &menuitem_midi_state, &menuitem_device_info, &menuitem_back, 0},
 };
 
+Menu menu_display = {
+    {"Ukazatel","Display"},
+	.parent = &menu_main,
+    .items = { &menuitem_display_state, &menuitem_display_set, &menuitem_back, 0},
+};
 
-
-
-
-unsigned char menuLanguage;
-
-int i = 0;
-
-unsigned char menuItem = 0;
-unsigned char lastMenuItem = 255;
-
-unsigned char cursorTopPos = 0;
-unsigned char menuTopPos = 0;
-
-int len = 0;
-
-uint8_t menu_scrollIndex = 0, menu_scrollPause = 0, menu_scrollPauseDone = 0, menu_scrollMax;
+Menu menu_set_display = {
+    {"Nastavit ukazatel","Set display"},
+	.parent = &menu_display,
+    .items = { &menuitem_display_set_song, &menuitem_display_set_verse, &menuitem_display_set_led, &menuitem_display_set_letter, &menuitem_back, 0},
+};
 
 void menu_scroll_callback(){
 	//Menu text scrolling
-	if(menu_scrollPauseDone){
-		if(menu_scrollIndex <= menu_scrollMax){
-			menu_scrollIndex++;
+	if(menuScrollPauseDone){
+		if(menuScrollIndex <= menuScrollMax){
+			menuScrollIndex++;
 		}else{
-			menu_scrollPauseDone = 0;
+			menuScrollPauseDone = 0;
 		}
-	}else menu_scrollPause++;
+	}else menuScrollPause++;
 
-	if(menu_scrollPause == MENU_SCROLL_PAUSE){
-		if(menu_scrollIndex > 0){
-			menu_scrollPauseDone = 0;
-		}else menu_scrollPauseDone = 1;
+	if(menuScrollPause == MENU_SCROLL_PAUSE){
+		if(menuScrollIndex > 0){
+			menuScrollPauseDone = 0;
+		}else menuScrollPauseDone = 1;
 
-		menu_scrollPause = 0;
-		menu_scrollIndex = 0;
+		menuScrollPause = 0;
+		menuScrollIndex = 0;
 	}
 
 }
@@ -108,7 +97,7 @@ void menu_show(Menu *menu){
 
 	//Zero out some variables
 	len = 0;
-	cursorTopPos = 0;
+	menuCursorTopPos = 0;
 	menuTopPos = 0;
 
 	//Count menu items
@@ -121,13 +110,13 @@ void menu_show(Menu *menu){
 	  // If the item is on the first screen
 	  if(menu_actual->selectedIndex < MENU_LINES){
 		  menuItem = menu_actual->selectedIndex;
-		  cursorTopPos = menu_actual->selectedIndex;
+		  menuCursorTopPos = menu_actual->selectedIndex;
 		  menuTopPos = 0;
 	  }else{
 		 //If the item is on the other screen
 		  menuItem = menu_actual->selectedIndex;
-		  cursorTopPos = MENU_LINES - 1;
-		  menuTopPos = menu_actual->selectedIndex - cursorTopPos;
+		  menuCursorTopPos = MENU_LINES - 1;
+		  menuTopPos = menu_actual->selectedIndex - menuCursorTopPos;
 	  }
 	}
 
@@ -145,13 +134,13 @@ void menu_keypress(uint8_t key){
 		if(menuItem != len-1){
 			menuItem++;
 
-			if(cursorTopPos >= MENU_LINES-1 || (cursorTopPos ==((MENU_LINES)/2) && ((len) - menuItem  ) > ((MENU_LINES-1)/2))){
+			if(menuCursorTopPos >= MENU_LINES-1 || (menuCursorTopPos ==((MENU_LINES)/2) && ((len) - menuItem  ) > ((MENU_LINES-1)/2))){
 				menuTopPos++;
-			}else cursorTopPos++;
+			}else menuCursorTopPos++;
 
 		}else{
 			menuItem = 0;
-			cursorTopPos = 0;
+			menuCursorTopPos = 0;
 			menuTopPos = 0;
 		}
 	}
@@ -161,8 +150,8 @@ void menu_keypress(uint8_t key){
 		if(menuItem != 0){
 			menuItem--;
 
-			if(cursorTopPos > 0 && !((cursorTopPos == MENU_LINES/2) && (menuItem >= MENU_LINES/2))){
-				cursorTopPos--;
+			if(menuCursorTopPos > 0 && !((menuCursorTopPos == MENU_LINES/2) && (menuItem >= MENU_LINES/2))){
+				menuCursorTopPos--;
 			}else menuTopPos--;
 		}else{
 
@@ -178,7 +167,7 @@ void menu_keypress(uint8_t key){
 				menuTopPos = len - MENU_LINES;
 			}
 
-			cursorTopPos = menuItem - menuTopPos;
+			menuCursorTopPos = menuItem - menuTopPos;
 		}
 	}
 
@@ -191,21 +180,21 @@ void menu_keypress(uint8_t key){
 		//Checkbox without function callback
 		if((menu->items[menu->selectedIndex]->callback == 0) && (flags & MENU_ITEM_IS_CHECKBOX)){
 			menu->items[menu->selectedIndex]->flags ^= MENU_ITEM_IS_CHECKED;
-			lastMenuItem = -1;
+			menuLastMenuItem = -1;
 		}
 
 		//Menu callback
 		if(flags & MENU_CALLBACK_IS_SUBMENU && menu->items[menu->selectedIndex]->callback){
 			menu_show((Menu*)menu->items[menu->selectedIndex]->callback);
 
-			lastMenuItem = -1;
+			menuLastMenuItem = -1;
 		}
 
 		//Function callback
 		if(flags & MENU_CALLBACK_IS_FUNCTION && menu->items[menu->selectedIndex]->callback){
 			(*menu->items[menu->selectedIndex]->callback)(menu);
 
-			lastMenuItem = -1;
+			menuLastMenuItem = -1;
 		}
 
 	}
@@ -221,7 +210,7 @@ void menu_update(){
 
 	Menu * menu = menu_actual;
 
-	if(lastMenuItem != menuItem){
+	if(menuLastMenuItem != menuItem){
 
 		
 		oled_fill(Black);
@@ -250,16 +239,16 @@ void menu_update(){
 
 		  // Menu debug
 		  char buffer [64];
-		  sprintf(buffer, "%d,%d,%d", menuItem, lastMenuItem, menuTopPos);
+		  sprintf(buffer, "%d,%d,%d", menuItem, menuLastMenuItem, menuTopPos);
 		  oled_set_cursor(0,0);
 		  oled_write_string(buffer, Font_7x10, White);
 
 
 		if(strlen(menu->items[menuItem]->text[menuLanguage]) > 8 /*&& !(sched_menu_scroll.flags & SCHEDULER_ON)*/){
-			menu_scrollIndex = 0;
-			menu_scrollMax = strlen(menu->items[menuItem]->text[menuLanguage])-9;
-			menu_scrollPause = 0;
-			menu_scrollPauseDone = 0;
+			menuScrollIndex = 0;
+			menuScrollMax = strlen(menu->items[menuItem]->text[menuLanguage])-9;
+			menuScrollPause = 0;
+			menuScrollPauseDone = 0;
 
 			sched_menu_scroll.flags |= SCHEDULER_ON;				
 		}else sched_menu_scroll.flags &= ~SCHEDULER_ON;
@@ -308,7 +297,7 @@ void menu_update(){
 				if(strlen(menu->items[index]->text[menuLanguage]) > 8){
 					char tmp[9];
 					if(menuItem == index){
-						memcpy(tmp, menu->items[index]->text[menuLanguage]+menu_scrollIndex, 8);
+						memcpy(tmp, menu->items[index]->text[menuLanguage]+menuScrollIndex, 8);
 						memset(tmp+8, 0, strlen(menu->items[index]->text[menuLanguage])-8);
 					}else{
 						memcpy(tmp, menu->items[index]->text[menuLanguage], 8);
@@ -326,7 +315,7 @@ void menu_update(){
 				if(strlen(menu->items[index]->text[menuLanguage]) > 8){
 					char tmp[9];
 					if(menuItem == index){
-						memcpy(tmp, menu->items[index]->text[menuLanguage]+menu_scrollIndex, 8);
+						memcpy(tmp, menu->items[index]->text[menuLanguage]+menuScrollIndex, 8);
 						memset(tmp+8, 0, strlen(menu->items[index]->text[menuLanguage])-8);
 					}else{
 						memcpy(tmp, menu->items[index]->text[menuLanguage], 8);
@@ -348,7 +337,7 @@ void menu_update(){
 
 			i++;
 		}
-		  lastMenuItem = menuItem;
+		  menuLastMenuItem = menuItem;
 	}
 
 	oled_update();
