@@ -14,7 +14,7 @@ typedef struct SScheduler {
     //Counter
     int counter;
     //Callback to a function
-    void (*callback)(void *);
+    void (*callback)(void);
     //Flags
     uint16_t flags;
 } Scheduler;

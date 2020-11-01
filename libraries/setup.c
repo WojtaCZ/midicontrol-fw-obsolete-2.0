@@ -10,6 +10,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/assert.h>
+#include <libopencm3/cm3/scb.h>
 
 void clock_init(void)
 {
@@ -82,6 +83,16 @@ void systick_init(){
 	systick_interrupt_enable();
 	systick_clear();
 	systick_counter_enable();
+}
+
+void bootloader_check(){
+	#define FW_ADDR    0x1FFF0000
+
+	SCB_VTOR = FW_ADDR & 0xFFFF;
+
+	__asm__ volatile("msr msp, %0"::"g"(*(volatile uint32_t *)FW_ADDR));
+
+	(*(void (**)())(FW_ADDR + 4))();
 }
 
 void wd_init(){

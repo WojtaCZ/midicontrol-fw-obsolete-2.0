@@ -12,6 +12,7 @@ CFILES += midi.c
 CFILES += io.c
 CFILES += menu.c
 CFILES += scheduler.c
+CFILES += comm.c
 
 # TODO - you will need to edit these two lines!
 DEVICE=stm32g431cbt

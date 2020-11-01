@@ -43,7 +43,7 @@ char oled_write_char(char ch, FontDef Font, OLED_COLOR color);
 char oled_write_string(char* str, FontDef Font, OLED_COLOR color);
 void oled_set_cursor(uint8_t x, uint8_t y);
 
-void oled_sleep_callback();
-void oled_wakeup_callback();
+void oled_sleep_callback(void);
+void oled_wakeup_callback(void);
 
 #endif

@@ -5,5 +5,6 @@
 
 
 void midi_init(void);
+void midi_send(uint8_t * buff, int len);
 
 #endif

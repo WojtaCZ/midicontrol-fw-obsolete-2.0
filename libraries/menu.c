@@ -24,26 +24,26 @@ Menu * menu_actual;
 
 extern Menu menu_main, menu_display, menu_settings, menu_set_display;
 
-MenuItem menuitem_play = {{"Prehraj", "Play"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_record = {{"Nahraj", "Record"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_organ_pwr = {{"Napajeni varhan", "Organ power"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX};
-MenuItem menuitem_display = {{"Ukazatel", "Display"}, (void*)&menu_display, MENU_CALLBACK_IS_SUBMENU};
-MenuItem menuitem_settings = {{"Nastaveni", "Settings"}, (void*)&menu_settings, MENU_CALLBACK_IS_SUBMENU};
+MenuItem menuitem_play = {{"Prehraj", "Play"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_record = {{"Nahraj", "Record"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_organ_pwr = {{"Napajeni varhan", "Organ power"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX, 0, 0, 0};
+MenuItem menuitem_display = {{"Ukazatel", "Display"}, (void*)&menu_display, MENU_CALLBACK_IS_SUBMENU, 0, 0, 0};
+MenuItem menuitem_settings = {{"Nastaveni", "Settings"}, (void*)&menu_settings, MENU_CALLBACK_IS_SUBMENU, 0, 0, 0};
 
-MenuItem menuitem_back = {{"Zpet", "Back"}, (void*)&menu_back, MENU_CALLBACK_IS_FUNCTION, .specSelected = 37, .specNotSelected = 36};
+MenuItem menuitem_back = {{"Zpet", "Back"}, (void*)&menu_back, MENU_CALLBACK_IS_FUNCTION, 0, 37, 36};
 
-MenuItem menuitem_paired_devices = {{"Sparovana zarizeni", "Paired devices"}, 0, MENU_CALLBACK_IS_SUBMENU};
-MenuItem menuitem_midi_loopback = {{"MIDI Loopback", "MIDI Loopback"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX};
-MenuItem menuitem_midi_state = {{"MIDI Stav", "MIDI state"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_device_info = {{"Informace o zarizeni", "Device info"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_paired_devices = {{"Sparovana zarizeni", "Paired devices"}, 0, MENU_CALLBACK_IS_SUBMENU, 0, 0, 0};
+MenuItem menuitem_midi_loopback = {{"MIDI Loopback", "MIDI Loopback"}, 0, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX, 0, 0, 0};
+MenuItem menuitem_midi_state = {{"MIDI Stav", "MIDI state"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_device_info = {{"Informace o zarizeni", "Device info"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
 
-MenuItem menuitem_display_set = {{"Nastavit", "Set"}, (void*)&menu_set_display, MENU_CALLBACK_IS_SUBMENU};
-MenuItem menuitem_display_state = {{"Stav", "State"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_display_set = {{"Nastavit", "Set"}, (void*)&menu_set_display, MENU_CALLBACK_IS_SUBMENU, 0, 0, 0};
+MenuItem menuitem_display_state = {{"Stav", "State"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
 
-MenuItem menuitem_display_set_song = {{"Pisen", "Song"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_display_set_verse = {{"Sloku", "Verse"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_display_set_led = {{"LED", "LED"}, 0, MENU_CALLBACK_IS_FUNCTION};
-MenuItem menuitem_display_set_letter = {{"Pismeno", "Letter"}, 0, MENU_CALLBACK_IS_FUNCTION};
+MenuItem menuitem_display_set_song = {{"Pisen", "Song"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_display_set_verse = {{"Sloku", "Verse"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_display_set_led = {{"LED", "LED"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_display_set_letter = {{"Pismeno", "Letter"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
 
 
 Menu menu_main = {
@@ -69,7 +69,7 @@ Menu menu_set_display = {
     .items = { &menuitem_display_set_song, &menuitem_display_set_verse, &menuitem_display_set_led, &menuitem_display_set_letter, &menuitem_back, 0},
 };
 
-void menu_scroll_callback(){
+void menu_scroll_callback(void){
 	//Menu text scrolling
 	if(menuScrollPauseDone){
 		if(menuScrollIndex <= menuScrollMax){
@@ -201,12 +201,12 @@ void menu_keypress(uint8_t key){
 }
 
 //Callback for back item click
-void menu_back(){
+void menu_back(void){
 	menu_actual->selectedIndex = 0;
 	menu_show((Menu*)menu_actual->parent);			
 }
 
-void menu_update(){
+void menu_update(void){
 
 	Menu * menu = menu_actual;
 
@@ -327,12 +327,16 @@ void menu_update(){
 			}
 				if((menu->items[index]->flags & MENU_PARAMETER_MASK) == MENU_PARAMETER_IS_NUMBER){
 					oled_set_cursor(COL(posx) + MENU_LEFT_OFFSET + MENU_SELECTOR_SPACING, ROW(i) + MENU_TOP_OFFSET + MENU_TEXT_SPACING*i);
-					oled_write_string(*((int*)menu->items[index]->parameter), MENU_FONT, White);
+					char buff[64];
+					sprintf(buff, "%d", menu->items[index]->parameter);
+					oled_write_string(buff, MENU_FONT, White);
 				}
 
 				if((menu->items[index]->flags & MENU_PARAMETER_MASK) == MENU_PARAMETER_IS_STRING){
 					oled_set_cursor(COL(posx) + MENU_LEFT_OFFSET + MENU_SELECTOR_SPACING, ROW(i) + MENU_TOP_OFFSET + MENU_TEXT_SPACING*i);
-					oled_write_string((char*)(menu->items[index]->parameter), MENU_FONT, White);
+					char buff[64];
+					sprintf(buff, "%d", menu->items[index]->parameter);
+					oled_write_string(buff, MENU_FONT, White);
 				}
 
 			i++;

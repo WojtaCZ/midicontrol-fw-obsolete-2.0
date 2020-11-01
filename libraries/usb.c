@@ -17,6 +17,8 @@
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/cm3/nvic.h>
 
+#include <string.h>
+
 usbd_device *usbd_fs_device;
 
 #define INTERFACE_COUNT 4
@@ -453,9 +455,6 @@ const uint8_t sysex_identity[] = {
 	0xf0,	/* SysEx start */
 	0x7e,	/* non-realtime */
 	0x00,	/* Channel 0 */
-	0x04,	/* USB Framing (3 byte SysEx) */
-	0x7d,	/* Educational/prototype manufacturer ID */
-	0x66,	/* Family code (byte 1) */
 	0x66,	/* Family code (byte 2) */
 	0x04,	/* USB Framing (3 byte SysEx) */
 	0x51,	/* Model number (byte 1) */
@@ -477,9 +476,13 @@ static void usb_midi_rx(usbd_device *dev, uint8_t ep){
 	char buf[64];
 	int len = usbd_ep_read_packet(dev, ENDPOINT_MIDI_DATA_OUT, buf, 64);
 
-	/*if(len){
+    midi_send(&buf[1], len);
+
+    usb_cdc_tx(&buf[1], len);
+
+	if(len){
 		usbd_ep_write_packet(dev, ENDPOINT_MIDI_DATA_IN, sysex_identity, sizeof(sysex_identity));
-	}*/
+	}
 }
 
 static void usb_cdc_rx(usbd_device *usbd_dev, uint8_t ep){
@@ -487,7 +490,9 @@ static void usb_cdc_rx(usbd_device *usbd_dev, uint8_t ep){
 	char buf[64];
 	int len = usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
 
-	if (len) {
+    comm_usb_packet_received(buf, len);
+
+	if(len){
 		usbd_ep_write_packet(usbd_dev, 0x82, buf, len);
 		buf[len] = 0;
 	}
@@ -535,18 +540,9 @@ static int interface_control_request_handler(
     uint16_t *len,
     void (**complete)(usbd_device *, struct usb_setup_data *)) {
 
-   /* if (req->wIndex == INTERFACE_RAW_HID) {
-        return raw_hid_control_request_handler(dev, req, buf, len, complete);
-    }*/
-
     if (req->wIndex == INTERFACE_CDC_COMM) {
         return cdcacm_control_request_handler(dev, req, buf, len, complete);
     }
-
-    /*if (req->wIndex == INTERFACE_KEYBOARD_HID) {
-        return keyboard_hid_control_request_handler(
-            dev, req, buf, len, complete);
-    }*/
 
     // This handler didn't handle this command, try the next one.
     return USBD_REQ_NEXT_CALLBACK;
@@ -575,7 +571,7 @@ static void set_config_handler(usbd_device *dev, uint16_t wValue) {
     // equal to the supplied value.
     usbd_register_control_callback(dev, USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_RECIPIENT, interface_control_request_handler);
 
-	 //usbd_register_control_callback(dev, USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT, usb_cdc_control);
+	usbd_register_control_callback(dev, USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE, USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT, usb_cdc_control);
 }
 
 void usb_init(){
@@ -593,7 +589,6 @@ void usb_init(){
 	usbd_fs_device = usbd_init(&st_usbfs_v2_usb_driver, &device_descriptor, &config_descriptor, usb_strings, sizeof(usb_strings), usbd_control_buffer, sizeof(usbd_control_buffer));
 
 	usbd_register_set_config_callback(usbd_fs_device, set_config_handler);
-
    
 }
 

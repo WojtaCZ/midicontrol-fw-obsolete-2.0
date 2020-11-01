@@ -82,10 +82,10 @@ typedef struct SMenu {
 
 
 void menu_show(Menu *menu);
-void menu_update();
+void menu_update(void);
 void menu_keypress(uint8_t key);
-void menu_back();
-void menu_scroll_callback();
+void menu_back(void);
+void menu_scroll_callback(void);
 
 
 #endif

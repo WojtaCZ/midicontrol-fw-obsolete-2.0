@@ -14,7 +14,7 @@ static uint32_t ioSwitchOld = 0;
 static uint8_t ioPrevNextCode = 0;
 static uint16_t ioStore = 0;
 
-extern void oled_wakeup_callback();
+extern void oled_wakeup_callback(void);
 
 void io_encoder_read(void){
     static int8_t rot_enc_table[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
@@ -49,7 +49,7 @@ void io_init(void){
 
 }
 
-void io_keypress_callback(){
+void io_keypress_callback(void){
     
     io_sw_read();
 	io_encoder_read();

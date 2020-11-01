@@ -206,14 +206,14 @@ void dma1_channel3_isr(void){
 }
 
 
-void oled_sleep_callback(){
+void oled_sleep_callback(void){
     sched_oled_sleep.flags = 0;
     oled_fill(Black);
     oled_update();
     oled.Sleep = 1;
 }
 
-void oled_wakeup_callback(){
+void oled_wakeup_callback(void){
     sched_oled_sleep.flags |= SCHEDULER_ON;
     sched_oled_sleep.counter = 0;
     oled.Sleep = 0;

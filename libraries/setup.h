@@ -7,5 +7,6 @@ void clock_init(void);
 void systick_init(void);
 void wd_init(void);
 void tim1_init(void);
+void bootloader_check(void);
 
 #endif
