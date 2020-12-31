@@ -1,9 +1,11 @@
 #include "comm.h"
 #include "usb.h"
 #include "scheduler.h"
+#include "base.h"
 
 #include <string.h>
 #include <stdlib.h>
+
 
 extern Scheduler sched_comm_decode;
 
@@ -14,6 +16,8 @@ uint16_t commUsbMsgLen, commUsbFifoIndex;
 uint8_t commUsartFifo[COMM_USART_FIFO_SIZE];
 
 void comm_usb_packet_received(uint8_t * buff, int len){
+
+
 
     if(!commUsbGotFlag) commUsbMsgLen = ((buff[4]&0xff)<<8 | (buff[5]&0xff));
 
@@ -50,7 +54,7 @@ void comm_usb_packet_received(uint8_t * buff, int len){
         }
     }else if((commUsbMsgLen+6) == len){
         commUsbFifoIndex = 0;
-        memcpy(&commUsbFifo[commUsbFifoIndex], buff, commUsbMsgLen);
+        memcpy(&commUsbFifo[commUsbFifoIndex], buff, commUsbMsgLen+6);
         commUsbFifoIndex += commUsbMsgLen;
         //Vyhodnot
        
@@ -61,18 +65,8 @@ void comm_usb_packet_received(uint8_t * buff, int len){
         commUsbGotFlag = 0;
     }
 
+
 }
-
-/*
-void comm_decode_callback(){
-    char buffer[64];
-    commUsbFifo[commUsbFifoIndex+1] = 0;
-    sprintf(buffer, "Len: %d Last: %s \n", commUsbFifoIndex, (char *)&commUsbFifo[commUsbFifoIndex-5]);
-    usb_cdc_tx(buffer, strlen(buffer));
-    
-}*/
-
-
 
 //Rutina pro dekodovani zprav komunikacniho protokolu zarizeni
 void comm_decode_callback(){
@@ -93,17 +87,17 @@ void comm_decode_callback(){
 	if(type == INTERNAL){
 		if(commUsbFifo[7] == INTERNAL_COM){
 			if(commUsbFifo[8] == INTERNAL_COM_PLAY){
-				/*char * buffPlay = (char*) malloc(50);
+				char * buffPlay = (char*) malloc(50);
 				memset(buffPlay, 0, 50);
 				memcpy(buffPlay, commUsbFifo+9, len-3);
-				midiControl_play(src, buffPlay);*/
+				base_play(src, buffPlay);
 			}else if(commUsbFifo[8] == INTERNAL_COM_STOP){
-				//midiControl_stop(src);
+				base_stop(src);
 			}else if(commUsbFifo[8] == INTERNAL_COM_REC){
-				/*char * buffRec = (char*) malloc(50);
+				char * buffRec = (char*) malloc(50);
 				memset(buffRec, 0, 50);
 				memcpy(buffRec, commUsbFifo+9, len-3);
-				midiControl_record(src, buffRec);*/
+				base_record(src, buffRec);
 			}else if(commUsbFifo[8] == INTERNAL_COM_KEEPALIVE){
 				if(src == ADDRESS_CONTROLLER){
 					/*aliveRemote = 1;
@@ -140,9 +134,9 @@ void comm_decode_callback(){
 		}else if(commUsbFifo[7] == INTERNAL_CURR){
 			if(commUsbFifo[8] == INTERNAL_CURR_SET_STATUS){
 				if(commUsbFifo[9]){
-					//midiControl_current_On();
+					base_set_current_source(1);
 				}else{
-					//midiControl_current_Off();
+					base_set_current_source(0);
 				}
 
 				comm_send_aok(0, msgType, len, 0, NULL);

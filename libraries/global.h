@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <libopencm3/stm32/gpio.h>
 
+#define DEVICE_NAME             "MIDIControl"
+#define DEVICE_TYPE             "BASE"
+#define FW_VERSION              "2.0.0"
+
 #define PORT_FRONT_LED	        GPIOB
 #define GPIO_FRONT_LED	        GPIO14
 
@@ -38,6 +42,8 @@
 #define GPIO_ENCODER_SW         GPIO1
 #define GPIO_ENCODER_SW_IRQ     NVIC_EXTI1_IRQ
 
+#define PORT_CURRENT_SOURCE 	GPIOA
+#define GPIO_CURRENT_SOURCE	    GPIO4
 
 
 

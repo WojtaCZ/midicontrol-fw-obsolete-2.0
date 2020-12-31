@@ -7,6 +7,7 @@
 #include "../libraries/menu.h"
 #include "../libraries/midi.h"
 #include "../libraries/scheduler.h"
+#include "../libraries/base.h"
 
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
@@ -57,6 +58,8 @@ int main(void)
 
 	midi_init();
 
+	base_init();
+
 	//led_init();
 
 	/*led_dev_set_status(LED_DEV_USB, LED_STATUS_OK);
@@ -65,8 +68,6 @@ int main(void)
 	menu_show(&menu_main);
 
 	systick_init();
-
-
 
 	//led_dev_set_status_all(LED_STRIP_BACK, LED_STATUS_LOAD);
 	//led_dev_set_status_all(LED_STRIP_FRONT, LED_STATUS_LOAD);

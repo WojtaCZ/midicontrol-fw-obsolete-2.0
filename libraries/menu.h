@@ -10,6 +10,10 @@
 #define LANGUAGE_CZECH 0
 #define LANGUAGE_ENGLISH 1
 
+
+#define MENU_MENUMODE_NORMAL	0
+#define MENU_MENUMODE_SPLASH	1
+
 // Set rows/cols based on your font (for graphical displays)
 #define ROW(x) ((x)*18)
 #define COL(y) ((y)*11)
@@ -80,12 +84,17 @@ typedef struct SMenu {
 	MenuItem *items[];
 } Menu;
 
-
 void menu_show(Menu *menu);
 void menu_update(void);
 void menu_keypress(uint8_t key);
 void menu_back(void);
 void menu_scroll_callback(void);
+
+void menu_show_splash(void (*callback)(void), void * param);
+void menu_hide_splash(void);
+
+void menu_start_splash(void);
+void menu_error_splash(char * msg);
 
 
 #endif

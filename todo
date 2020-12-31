@@ -70,3 +70,548 @@ zprovoznit led
 		dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)&midiFifo[midiFifoIndex++]);
     	dma_set_number_of_data(DMA1, DMA_CHANNEL4, 1);
 	}
+
+
+
+
+
+
+//Funkce pro vykresleni libovolneho textu s nacitacimi puntiky
+void oled_LoadingSplash(char * msg){
+	//Vypise se text
+	oled_set_cursor((128-(strlen(msg))*11)/2, 15);
+	oled_write_string(msg, Font_11x18, White);
+
+	//Vykresli se puntiky
+	oled_set_cursor(36,35);
+	ssd1306_WriteChar(33 - (loadingStat & 0x01), Icon_11x18, White);
+	oled_set_cursor(58,35);
+	ssd1306_WriteChar(33 - ((loadingStat>>1) & 0x01), Icon_11x18, White);
+	oled_set_cursor(80,35);
+	ssd1306_WriteChar(33 - ((loadingStat>>2) & 0x01), Icon_11x18, White);
+	encoderclick = 0;
+
+}
+
+//Funkce pro vypsani chyby
+void oled_ErrorSplash(char * msg){
+	oled_set_cursor((128-(strlen("Chyba!"))*11)/2, 1);
+	oled_write_string("Chyba!", Font_11x18, White);
+
+	oled_set_cursor((128-(strlen(msg))*7)/2, 20);
+	oled_write_string(msg, Font_7x10, White);
+
+	encoderclick = 0;
+
+}
+
+//Funkce pro vypsani chyby
+void oled_NameExistsSplash(){
+	oled_set_cursor((128-(strlen("Chyba!"))*11)/2, 1);
+	oled_write_string("Chyba!", Font_11x18, White);
+
+	oled_set_cursor((128-(strlen("Pisen"))*7)/2, 25);
+	oled_write_string("Pisen", Font_7x10, White);
+
+	oled_set_cursor((128-(strlen("jiz existuje!"))*7)/2, 40);
+	oled_write_string("jiz existuje!", Font_7x10, White);
+
+	if(encoderclick){
+		encoderclick = 0;
+		oled_setDisplayedMenu("mainmenu",&mainmenu, sizeof(mainmenu), 0);
+		oledType = OLED_MENU;
+	}
+
+}
+
+//Funkce pro vykresleni obrazovky "Cekman na pripojeni USB"
+void oled_UsbWaitingSplash(){
+	//Vykresli se texty
+	char * msg = "Cekam na";
+	oled_set_cursor((128-(strlen(msg))*11)/2, 1);
+	oled_write_string(msg, Font_11x18, White);
+	msg = "aplikaci";
+	oled_set_cursor((128-(strlen(msg))*11)/2, 23);
+	oled_write_string(msg, Font_11x18, White);
+
+	//VYkresli se puntiky
+	oled_set_cursor(36,45);
+	ssd1306_WriteChar(33 - (loadingStat & 0x01), Icon_11x18, White);
+	oled_set_cursor(58,45);
+	ssd1306_WriteChar(33 - ((loadingStat>>1) & 0x01), Icon_11x18, White);
+	oled_set_cursor(80,45);
+	ssd1306_WriteChar(33 - ((loadingStat>>2) & 0x01), Icon_11x18, White);
+	encoderclick = 0;
+}
+
+//Funkce vykreslujici "Zadne vysledky"
+void oled_NothingFound(){
+	char * msg = "Zadne";
+	oled_set_cursor((128-(strlen(msg))*11)/2, 1);
+	oled_write_string(msg, Font_11x18, White);
+	msg = "vysledky";
+	oled_set_cursor((128-(strlen(msg))*11)/2, 23);
+	oled_write_string(msg, Font_11x18, White);
+	if(encoderclick){
+		oledType = OLED_MENU;
+		encoderclick = 0;
+	}
+}
+
+
+//Funkce vykreslujici ze struktry info obrazovku o zarizeni
+void oled_BtDevInfoSplash(struct btDevice * dev){
+
+	//Nastavi se scrollovani pokud je jmeno delsi nez obrazovka
+	if(strlen(dev->name) > 9){
+		scrollMax = (strlen(dev->name) - 10);
+		oled_set_cursor(14, 1);
+		char tmp[10];
+		memcpy(tmp, (char*)(dev->name)+scrollIndex, 9);
+		memset(tmp+9, 0, strlen(dev->name)-9);
+		oled_write_string(tmp, Font_11x18, White);
+	}else{
+		oled_set_cursor((128-(strlen(dev->name))*9)/2, 1);
+		oled_write_string(dev->name, Font_11x18, White);
+	}
+
+	//Vypisou se udaje
+	char msg[25];
+	sprintf(msg, "%02X-%02X-%02X-%02X-%02X-%02X", dev->mac[0], dev->mac[1], dev->mac[2], dev->mac[3], dev->mac[4], dev->mac[5]);
+	oled_set_cursor((128-(strlen(msg))*7)/2, 30);
+	oled_write_string(msg, Font_7x10, White);
+
+	//Vypise se RSSI
+	sprintf(msg, "RSSI: %ddB", dev->rssi);
+	oled_set_cursor((128-(strlen(msg))*7)/2, 43);
+	oled_write_string(msg, Font_7x10, White);
+
+
+	//Pokud se klikne, vrati se do menu
+	if(encoderclick){
+		oledType = OLED_MENU;
+		encoderclick = 0;
+	}
+}
+
+//Funkce pro vykresleni obrazovky pro potvrzeni parovani
+void oled_BtDevPairAckSplash(struct btDevice * dev){
+	//Obrati se orientace enkoderu
+	encoderDirSwap = 1;
+	//Omezi se pohyb enkoderu na 2
+	dispmenusize = 2;
+
+	//Nastavi se scrollovani pokud je jmeno delsi nez obrazovka
+	if(strlen(dev->name) > 9){
+		scrollMax = (strlen(dev->name) - 10);
+		oled_set_cursor(14, 1);
+		char tmp[10];
+		memcpy(tmp, (char*)(dev->name)+scrollIndex, 9);
+		memset(tmp+9, 0, strlen(dev->name)-9);
+		oled_write_string(tmp, Font_11x18, White);
+	}else{
+		oled_set_cursor((128-(strlen(dev->name))*9)/2, 1);
+		oled_write_string(dev->name, Font_11x18, White);
+	}
+
+
+	//Vypise se hlaska "Opravdu parovat?"
+	char msg[25];
+
+	sprintf(msg, "Opravdu");
+	oled_set_cursor(((128-((float)strlen(msg)-0.5)*7)/2), 25);
+	oled_write_string(msg, Font_7x10, White);
+
+	sprintf(msg, "parovat?");
+	oled_set_cursor(((128-((float)strlen(msg)-0.5)*7)/2), 37);
+	oled_write_string(msg, Font_7x10, White);
+
+	//Podle pozice enkoderu se meni vybrany text
+	if(encoderpos == 0){
+		sprintf(msg, "ANO");
+		for(int x = 0; x < 64; x++){
+			for(int y = 0; y < 12; y++){
+				ssd1306_DrawPixel(x, y+51, White);
+			}
+		}
+
+		oled_set_cursor(((64-((float)strlen(msg)-0.5)*7)/2), 53);
+		oled_write_string(msg, Font_7x10, Black);
+
+
+		sprintf(msg, "NE");
+		oled_set_cursor(((64-((float)strlen(msg)-0.5)*7)/2)+64, 53);
+		oled_write_string(msg, Font_7x10, White);
+
+	}else{
+		sprintf(msg, "ANO");
+		oled_set_cursor(((64-((float)strlen(msg)-0.5)*7)/2), 53);
+		oled_write_string(msg, Font_7x10, White);
+
+
+		sprintf(msg, "NE");
+		for(int x = 0; x < 64; x++){
+			for(int y = 0; y < 12; y++){
+				ssd1306_DrawPixel(x+64, y+51, White);
+			}
+		}
+		oled_set_cursor(((64-((float)strlen(msg)-0.5)*7)/2)+64, 53);
+		oled_write_string(msg, Font_7x10, Black);
+
+	}
+
+	//Pokud na danem textu klikne
+	if(encoderclick){
+		encoderDirSwap = 0;
+		if(encoderpos == 0){
+			//Klikne na ano - pokusi se parovat
+			sprintf(workerBtConnectMAC, "%02X%02X%02X%02X%02X%02X", btBondable[btSelectedBondDevice].mac[0], btBondable[btSelectedBondDevice].mac[1], btBondable[btSelectedBondDevice].mac[2], btBondable[btSelectedBondDevice].mac[3], btBondable[btSelectedBondDevice].mac[4], btBondable[btSelectedBondDevice].mac[5]);
+			btPairing = 1;
+			workerAssert(&workerBtConnect);
+			oled_setDisplayedSplash(oled_LoadingSplash, "Paruji");
+		}else{
+			//Klikne na ne - vrati se do menu
+			oled_setDisplayedMenu("btBondableDevices", &btBondableDevices, sizeof(btBondableDevices)-(20-btBondableCount-1)*sizeof(btBondableDevices[19]), 0);
+			oledType = OLED_MENU;
+		}
+
+		encoderclick = 0;
+	}
+}
+
+//Funkce vykreslujici obrazovku s zadosti o parovani
+void oled_BtDevPairRequestSplash(struct btDevice * dev){
+
+	//Nastavi se scrollovani pokud je jmeno delsi nez obrazovka
+	if(strlen(dev->name) > 9){
+		scrollMax = (strlen(dev->name) - 10);
+		oled_set_cursor(14, 1);
+		char tmp[10];
+		memcpy(tmp, (char*)(dev->name)+scrollIndex, 9);
+		memset(tmp+9, 0, strlen(dev->name)-9);
+		oled_write_string(tmp, Font_11x18, White);
+	}else{
+		oled_set_cursor((128-(strlen(dev->name))*9)/2, 1);
+		oled_write_string(dev->name, Font_11x18, White);
+	}
+
+
+	//Vypise se hlaska
+	char msg[25];
+
+	sprintf(msg, "Zada parovani");
+	oled_set_cursor((128-(strlen(msg))*7)/2, 25);
+	oled_write_string(msg, Font_7x10, White);
+
+	//Vypise se PIN kod
+	sprintf(msg, "PIN %06ld", dev->pin);
+	oled_set_cursor((128-(strlen(msg))*11)/2, 41);
+	oled_write_string(msg, Font_11x18, White);
+
+	//Po kliknuti skoci do menu
+	if(encoderclick){
+		oledType = OLED_MENU;
+		encoderclick = 0;
+	}
+}
+
+//Obrazovka vypisujici "Parovani kompletni"
+void oled_BtDevPairCompleteSplash(char * msg){
+
+	//Vypise se hlaska
+	oled_set_cursor((128-(strlen(msg))*11)/2, 25);
+	oled_write_string(msg, Font_11x18, White);
+
+	char * msg2 = "Parovani";
+	oled_set_cursor((128-(strlen(msg2))*11)/2, 1);
+	oled_write_string(msg2, Font_11x18, White);
+
+	//Pri kliknuti skoci zpet do menu
+	if(encoderclick){
+		encoderclick = 0;
+		oled_setDisplayedMenu("mainmenu",&mainmenu, sizeof(mainmenu), 0);
+		oledType = OLED_MENU;
+	}
+}
+
+//Obrazovka vypisujici stav MIDI
+void oled_MIDIstatusSplash(){
+
+	//Vypise se hlaska
+	char msg[25];
+
+	//Vypise se hlaska
+	sprintf(msg, "Stav MIDI");
+	oled_set_cursor((128-(strlen(msg))*11)/2, 1);
+	oled_write_string(msg, Font_11x18, White);
+
+	sprintf(msg, " IN   OUT");
+	oled_set_cursor((128-(strlen(msg))*11)/2, 25);
+	oled_write_string(msg, Font_11x18, White);
+
+	if(midiStatus == MIDI_A){
+		sprintf(msg, "MIDI A   MIDI B");
+	}else{
+		sprintf(msg, "MIDI B   MIDI A");
+	}
+
+	oled_set_cursor((128-(strlen(msg))*7)/2, 45);
+	oled_write_string(msg, Font_7x10, White);
+
+	//Pri kliknuti skoci zpet do menu
+	if(encoderclick){
+		encoderclick = 0;
+		oled_setDisplayedMenu("settingsmenu",&settingsmenu, sizeof(settingsmenu), 0);
+		oledType = OLED_MENU;
+	}
+}
+
+
+//Vykresli obrazovku prehravani
+void oled_playingSplash(char * songname){
+
+	//Vykresli hlasku "Prehravam"
+	char msg[25];
+
+	sprintf(msg, "Prehravam");
+	oled_set_cursor((128-(strlen(msg))*11)/2, 1);
+	oled_write_string(msg, Font_11x18, White);
+
+	//Vypise nazev pisne
+	if(strlen(songname) > 9){
+			scrollMax = (strlen(songname) - 10);
+			oled_set_cursor(14, 25);
+			char tmp[10];
+			memcpy(tmp, (char*)(songname)+scrollIndex, 9);
+			memset(tmp+9, 0, strlen(songname)-9);
+			oled_write_string(tmp, Font_11x18, White);
+		}else{
+			oled_set_cursor((128-(strlen(songname))*11)/2, 25);
+			oled_write_string(songname, Font_11x18, White);
+		}
+
+	//Vykresli bily blok okolo textu "Zastavit"
+	for(int x = 0; x < 128; x++){
+		for(int y = 0; y < 12; y++){
+			ssd1306_DrawPixel(x, y+51, White);
+		}
+	}
+
+	//Vypise "Zastavit"
+	sprintf(msg, "Zastavit");
+	oled_set_cursor((128-(strlen(msg))*7)/2, 53);
+	oled_write_string(msg, Font_7x10, Black);
+
+	//Blika se LED
+	if(loadingToggle){
+		setStatus(FRONT2, DEV_OK);
+		setStatus(FRONT3, DEV_OK);
+	}else setStatusAll(1, DEV_CLR);
+
+
+	//Pri kliknuti
+	if(encoderclick){
+		//Skoci zpet do menu
+		oled_setDisplayedMenu("mainmenu", &mainmenu, sizeof(mainmenu), 0);
+		oledType = OLED_MENU;
+		//Zapne refresh
+		oled_refreshResume();
+		//Vypne LED
+		setStatusAll(1, DEV_CLR);
+		//Zastavi prehravani
+		midiControl_stop(ADDRESS_MAIN);
+		encoderclick = 0;
+	}
+}
+
+//Vykresli obrazovku nahravani
+void oled_recordingSplash(char * songname){
+
+	//Vypise hlasku "Nahravam"
+	char msg[25];
+
+	sprintf(msg, "Nahravam");
+	oled_set_cursor((128-(strlen(msg))*11)/2, 1);
+	oled_write_string(msg, Font_11x18, White);
+
+	//Vypise nazev pisne
+	if(strlen(songname) > 9){
+			scrollMax = (strlen(songname) - 10);
+			oled_set_cursor(14, 25);
+			char tmp[10];
+			memcpy(tmp, (char*)(songname)+scrollIndex, 9);
+			memset(tmp+9, 0, strlen(songname)-9);
+			oled_write_string(tmp, Font_11x18, White);
+		}else{
+			oled_set_cursor((128-(strlen(songname))*11)/2, 25);
+			oled_write_string(songname, Font_11x18, White);
+		}
+
+	//Vykresli bily blok okolo textu "Zastavit"
+	for(int x = 0; x < 128; x++){
+		for(int y = 0; y < 12; y++){
+			ssd1306_DrawPixel(x, y+51, White);
+		}
+	}
+
+	//Vypise "Zastavit"
+	sprintf(msg, "Zastavit");
+	oled_set_cursor((128-(strlen(msg))*7)/2, 53);
+	oled_write_string(msg, Font_7x10, Black);
+
+	//Blika se LED
+	if(loadingToggle){
+		setStatus(FRONT2, DEV_ERR);
+		setStatus(FRONT3, DEV_ERR);
+	}else setStatusAll(1, DEV_CLR);
+
+	//Pri kliknuti
+	if(encoderclick){
+		//Vrati se zpet do menu
+		oled_setDisplayedMenu("mainmenu", &mainmenu, sizeof(mainmenu), 0);
+		oledType = OLED_MENU;
+		//Obnovi refresh
+		oled_refreshResume();
+		//Vycisti LED
+		setStatusAll(1, DEV_CLR);
+		//Zastavi prehravani
+		midiControl_stop(ADDRESS_MAIN);
+		encoderclick = 0;
+		encoderDirSwap = 0;
+	}
+}
+
+void oled_DisplayStatusSplash(){
+
+	char msg[20];
+	//
+	sprintf(msg, " %c%c%c%c ", dispSong[3], dispSong[2], dispSong[1], dispSong[0]);
+	oled_set_cursor((128-(strlen(msg))*16)/2, 3);
+	oled_write_string(msg, Font_16x26, White);
+
+	sprintf(msg, " %c%c %c ", dispVerse[1], dispVerse[0], dispLetter);
+	oled_set_cursor((128-(strlen(msg))*16)/2, 33);
+	oled_write_string(msg, Font_16x26, White);
+
+	if(dispLED != dispLEDOld){
+		setColorAll(1, CLR_CLEAR);
+		dispLEDOld = dispLED;
+	}
+
+	switch(dispLED){
+		case DISP_LED_BLUE:
+			setColor(FRONT4, CLR_BLUE);
+		break;
+
+		case DISP_LED_GREEN:
+			setColor(FRONT3, CLR_GREEN);
+		break;
+
+		case DISP_LED_RED:
+			setColor(FRONT1, CLR_RED);
+		break;
+
+		case DISP_LED_YELLOW:
+			setColor(FRONT2, CLR_YELLOW);
+		break;
+
+		default:
+			setColorAll(1, CLR_CLEAR);
+		break;
+
+	}
+
+
+	//Pri kliknuti skoci zpet do menu
+	if(encoderclick){
+		setColorAll(1, CLR_CLEAR);
+		encoderclick = 0;
+		oled_setDisplayedMenu("displaymenu",&displaymenu, sizeof(displaymenu), 0);
+		oledType = OLED_MENU;
+	}
+}
+
+void oled_NumberEnterSplash(struct reqNumber * num){
+
+	dispmenusize = 10;
+
+	char msg[25];
+
+	oled_set_cursor((128-((float)strlen(num->message)-0.5)*11)/2, 1);
+	oled_write_string(num->message, Font_11x18, White);
+
+
+	sprintf(msg, "%04ld", num->enteredNumber);
+	oled_set_cursor((128-((float)strlen(msg)-0.5)*11)/2, 28);
+	oled_write_string(msg, Font_11x18, White);
+
+	if(loadingToggle){
+		for(int x = 0; x < 11; x++){
+			for(int y = 0; y < 3; y++){
+				ssd1306_DrawPixel(x+(128-((float)strlen(msg)-0.5)*11)/2+num->selectedDigit*11, y+48, White);
+			}
+		}
+	}
+
+
+	uint8_t digit = (num->enteredNumber / (long int)pow(10, (num->digits - 1 - num->selectedDigit))) - (num->enteredNumber/(long int)pow(10, (num->digits - 1 - num->selectedDigit)+1))*10;
+
+	num->enteredNumber = num->enteredNumber - digit*pow(10, (num->digits - 1 - num->selectedDigit)) + encoderpos*pow(10, (num->digits - 1 - num->selectedDigit));
+
+
+	if(encoderclick){
+		//workerAssert(&workerBtEnterPairingKey);
+		oledType = OLED_MENU;
+		encoderclick = 0;
+	}
+}
+
+void oled_ValueEnterSplash(struct reqValue * num){
+
+	encoderDirSwap = 1;
+	dispmenusize = num->charactersLen;
+
+	num->enteredValue[num->selectedDigit] = num->characters[encoderpos];
+
+	char msg[40];
+
+	oled_set_cursor((128-((float)strlen(num->message)-0.5)*11)/2, 1);
+	oled_write_string(num->message, Font_11x18, White);
+
+	sprintf(msg, "%*s", num->digits ,num->enteredValue);
+	oled_set_cursor((128-((float)strlen(msg)-0.5)*11)/2, 28);
+	oled_write_string(msg, Font_11x18, White);
+
+	if(loadingToggle){
+		for(int x = 0; x < 11; x++){
+			for(int y = 0; y < 3; y++){
+				ssd1306_DrawPixel(x+(128-((float)strlen(msg)-0.5)*11)/2+num->selectedDigit*11, y+48, White);
+			}
+		}
+	}
+
+	if(encoderclick && num->selectedDigit >= (num->digits-1)){
+
+		encoderDirSwap = 0;
+		encoderclick = 0;
+
+		if(num->application == APP_DISPLAY){
+			encoderclick = 0;
+			workerAssert(&workerDispRefresh);
+			oled_setDisplayedMenu("displaysettingsmenu",&displaysettingsmenu, sizeof(displaysettingsmenu), 0);
+			oledType = OLED_MENU;
+		}else if(num->application == APP_RECORD){
+			encoderDirSwap = 0;
+			encoderclick = 0;
+			workerAssert(&workerRecord);
+			workerRecord.status = WORKER_REQUEST;
+			oledType = OLED_MENU;
+		}
+
+	}else if(encoderclick){
+		num->selectedDigit++;
+		encoderclick = 0;
+		encoderpos = 0;
+	}
+}
+

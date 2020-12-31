@@ -10,7 +10,7 @@
 
 struct Input ioEncoder;
 
-static uint32_t ioSwitchOld = 0;
+static uint32_t ioSwitchOld = GPIO_ENCODER_SW;
 static uint8_t ioPrevNextCode = 0;
 static uint16_t ioStore = 0;
 
