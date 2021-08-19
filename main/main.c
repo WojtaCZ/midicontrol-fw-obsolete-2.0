@@ -30,7 +30,9 @@ void sys_tick_handler(void){
 	scheduler_check(&sched_led_process);
 	scheduler_check(&sched_io_keypress);
 	scheduler_check(&sched_oled_sleep);	
-	scheduler_check(&sched_comm_decode);		
+	//scheduler_check(&sched_comm_decode);	
+
+	scheduler_check(&sched_comm_timeout);		
 }
 
 
@@ -78,7 +80,9 @@ int main(void)
 		//scheduler_process(&sched_led_process);
 		scheduler_process(&sched_io_keypress);
 		scheduler_process(&sched_oled_sleep);
-		scheduler_process(&sched_comm_decode);
+		//scheduler_process(&sched_comm_decode);
+
+		scheduler_process(&sched_comm_timeout);
 
 	}
 

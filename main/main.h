@@ -14,6 +14,6 @@ extern Scheduler sched_menu_update;
 extern Scheduler sched_led_process;
 extern Scheduler sched_io_keypress;
 extern Scheduler sched_oled_sleep;
-extern Scheduler sched_comm_decode;
+extern Scheduler sched_comm_timeout;
 
 #endif
