@@ -1,5 +1,6 @@
 #include "base.h"
 #include "comm.h"
+#include "menu.h"
 
 extern MenuItem menuitem_organ_pwr;
 extern uint8_t menuForceUpdate;
@@ -36,9 +37,20 @@ void base_set_current_source(uint8_t state){
     menuForceUpdate = 1;
 }
 
+int base_get_current_source(){
+	return !!(gpio_port_read(PORT_CURRENT_SOURCE) & GPIO_CURRENT_SOURCE);
+}
+
+void base_req_songlist(){
+	comm_cmd_send(CMD_GET | MUSIC_SONGLIST , "");
+}
+
 
 //Rutina pro spusteni nahravani
 void base_record(uint8_t initiator, char * songname){
+	char buffer[] = "set record";
+    usb_cdc_tx(buffer, strlen(buffer));
+/*
 	//Spusteno z PC
 	if(initiator == ADDRESS_PC){
 		//Jen se zobrazi obrazovka nahravani
@@ -50,22 +62,25 @@ void base_record(uint8_t initiator, char * songname){
 		//Jen se zobrazi obrazovka nahravani
 		//oled_setDisplayedSplash(oled_recordingSplash, songname);
 		//oled_refreshPause();
-	}else if(initiator == ADDRESS_MAIN){
+	}else /*if(initiator == ADDRESS_MAIN)*//*{
 	//Spusteno ze zakladnove stanice
 		//Posle se zprava do PC aby zacalo nahravat
-		char msg[100];
+	/*	char msg[100];
 		msg[0] = INTERNAL_COM;
 		msg[1] = INTERNAL_COM_REC;
 		memcpy(&msg[2], songname, strlen(songname));
 		comm_send_msg(ADDRESS_MAIN, ADDRESS_PC, 0, INTERNAL, msg, strlen(songname)+2);
 	}
-
+*/
 
 }
 
-void base_play(uint8_t initiator, char * songname){
+void base_play(Menu * menu){
+	comm_cmd_send(CMD_SET | MUSIC_PLAY, menu->items[menu->selectedIndex]->text[0]);
+	/*char buffer[] = "set play";
+    usb_cdc_tx(buffer, strlen(buffer));*/
 	//Spusteno z PC
-	if(initiator == ADDRESS_PC){
+	/*if(initiator == ADDRESS_PC){
 		base_set_current_source(1);
 		//memset(selectedSong, 0, 40);
 		//sprintf(selectedSong, "%s", songname);
@@ -77,16 +92,16 @@ void base_play(uint8_t initiator, char * songname){
 		//Jen se zobrazi obrazovka prehravani
 		//oled_setDisplayedSplash(oled_playingSplash, songname);
 		//oled_refreshPause();
-	}else if(initiator == ADDRESS_MAIN){
+	}else /*if(initiator == ADDRESS_MAIN)*//*{
 	//Spusteno ze zakladnove stanice
 		//Posle se zprava do PC aby zacalo prehravat
-		char msg[100];
+	/*	char msg[100];
 		msg[0] = INTERNAL_COM;
 		msg[1] = INTERNAL_COM_PLAY;
 		memcpy(&msg[2], songname, strlen(songname));
 		comm_send_msg(ADDRESS_MAIN, ADDRESS_PC, 0, INTERNAL, msg, strlen(songname)+2);
 	}
-
+*/
 
 }
 

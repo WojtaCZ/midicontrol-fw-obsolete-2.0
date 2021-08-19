@@ -17,17 +17,20 @@ extern void io_keypress_callback(void);
 Scheduler sched_io_keypress = {10, 0, &io_keypress_callback, SCHEDULER_PERIODICAL | SCHEDULER_ON};
 
 Scheduler sched_oled_sleep = {OLED_SLEEP_INTERVAL, 0, &oled_sleep_callback, SCHEDULER_ON};
-
+/*
 extern void comm_decode_callback(void);
 Scheduler sched_comm_decode = {0, 0, &comm_decode_callback, 0};
+*/
+
+extern void comm_timeout_callback(void);
+Scheduler sched_comm_timeout = {3000, 0, &comm_timeout_callback, 0};
 
 
 
 void scheduler_check(Scheduler * sched){
     if(((sched->counter) >= (sched->interval)) && !(sched->flags & SCHEDULER_READY) && (sched->flags & SCHEDULER_ON)){
-       sched->flags |= SCHEDULER_READY;
-       sched->counter = 0;
-    }else{
+        sched->flags |= SCHEDULER_READY;
+    }else if(sched->flags & SCHEDULER_ON){
         sched->counter++;
     }
 }
@@ -35,6 +38,8 @@ void scheduler_check(Scheduler * sched){
 void scheduler_process(Scheduler * sched){
     if(sched->flags & SCHEDULER_READY){
         (*sched->callback)();
+
+        sched->counter = 0;
         
         if(!(sched->flags & SCHEDULER_PERIODICAL)){
             sched->flags &= ~SCHEDULER_READY;

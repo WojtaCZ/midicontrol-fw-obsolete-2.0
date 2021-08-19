@@ -81,7 +81,7 @@ typedef struct SMenu {
 	char* title[MENU_LANGUAGES];
 	int selectedIndex;
 	void (*parent)(void *);
-	MenuItem *items[];
+	MenuItem * items[];
 } Menu;
 
 void menu_show(Menu *menu);

@@ -28,8 +28,12 @@ uint8_t menuActualSplashKeypress = 0;
 extern Menu menu_main, menu_display, menu_settings, menu_set_display;
 
 extern void base_menu_set_current_source(void * m);
+extern void base_play(uint8_t initiator, char * songname);
+extern void base_stop(uint8_t initiator);
+extern void base_req_songlist();
 
-MenuItem menuitem_play = {{"Prehraj", "Play"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_play = {{"Prehraj", "Play"}, (void*)&base_req_songlist, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
+MenuItem menuitem_stop = {{"Zastav", "Stop"}, (void*)&base_stop, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
 MenuItem menuitem_record = {{"Nahraj", "Record"}, 0, MENU_CALLBACK_IS_FUNCTION, 0, 0, 0};
 MenuItem menuitem_organ_pwr = {{"Napajeni varhan", "Organ power"}, (void*)&base_menu_set_current_source, MENU_CALLBACK_IS_FUNCTION | MENU_ITEM_IS_CHECKBOX, 0, 0, 0};
 MenuItem menuitem_display = {{"Ukazatel", "Display"}, (void*)&menu_display, MENU_CALLBACK_IS_SUBMENU, 0, 0, 0};
@@ -55,6 +59,12 @@ Menu menu_main = {
 	{"Hlavni menu","Main menu"},
     .items = {&menuitem_play, &menuitem_record, &menuitem_organ_pwr, &menuitem_display, &menuitem_settings, 0},
 };
+
+Menu menu_playing = {
+	{"Prehrava se","Now playing"},
+    .items = {&menuitem_stop, 0},
+};
+
 
 Menu menu_settings = {
     {"Nastaveni","Settings"},
